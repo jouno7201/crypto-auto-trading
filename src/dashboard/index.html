@@ -1,0 +1,1394 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>코인 자동매매 대시보드</title>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, 'Segoe UI', sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+      }
+
+      .header {
+        padding: 16px 24px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .header h1 {
+        font-size: 18px;
+        color: #58a6ff;
+      }
+      .header .mode {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .mode-paper {
+        background: #f0883e22;
+        color: #f0883e;
+      }
+      .mode-live {
+        background: #f8514922;
+        color: #f85149;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        padding: 16px 24px;
+      }
+      .card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 20px;
+      }
+      .card-label {
+        font-size: 12px;
+        color: #8b949e;
+        margin-bottom: 4px;
+      }
+      .card-value {
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .card-sub {
+        font-size: 12px;
+        color: #8b949e;
+        margin-top: 4px;
+      }
+      .positive {
+        color: #3fb950;
+      }
+      .negative {
+        color: #f85149;
+      }
+
+      .main {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 16px;
+        padding: 0 24px 16px;
+      }
+      .chart-container {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .chart-header h2 {
+        font-size: 14px;
+        color: #8b949e;
+      }
+      #chart {
+        width: 100%;
+        height: 400px;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .section {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .section h3 {
+        font-size: 13px;
+        color: #8b949e;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #30363d;
+        padding-bottom: 8px;
+      }
+
+      .bot-controls {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .bot-config {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .bot-config label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #8b949e;
+      }
+      .bot-config select {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        color: #c9d1d9;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        flex: 1;
+        margin-left: 8px;
+      }
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-start {
+        background: #238636;
+        color: #fff;
+      }
+      .btn-start:hover {
+        background: #2ea043;
+      }
+      .btn-stop {
+        background: #da3633;
+        color: #fff;
+      }
+      .btn-stop:hover {
+        background: #f85149;
+      }
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .strategy-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #21262d;
+      }
+      .strategy-item:last-child {
+        border-bottom: none;
+      }
+      .strategy-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .toggle {
+        width: 36px;
+        height: 20px;
+        background: #30363d;
+        border-radius: 10px;
+        position: relative;
+        cursor: pointer;
+      }
+      .toggle.active {
+        background: #238636;
+      }
+      .toggle::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        background: #fff;
+        border-radius: 50%;
+        top: 2px;
+        left: 2px;
+        transition: 0.2s;
+      }
+      .toggle.active::after {
+        left: 18px;
+      }
+
+      .trade-log {
+        max-height: 250px;
+        overflow-y: auto;
+      }
+      .trade-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid #21262d;
+        font-size: 12px;
+      }
+      .trade-row:last-child {
+        border-bottom: none;
+      }
+
+      .position-info div {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 13px;
+      }
+      .position-info .label {
+        color: #8b949e;
+      }
+
+      /* 탭 네비게이션 */
+      .tabs {
+        display: flex;
+        gap: 0;
+        padding: 0 24px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+      }
+      .tab {
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #8b949e;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+      }
+      .tab.active {
+        color: #58a6ff;
+        border-bottom-color: #58a6ff;
+      }
+      .tab:hover {
+        color: #c9d1d9;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+
+      /* 백테스트 */
+      .bt-container {
+        padding: 16px 24px;
+      }
+      .bt-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .bt-form label {
+        font-size: 12px;
+        color: #8b949e;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .bt-form select,
+      .bt-form input {
+        background: #0d1117;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        padding: 8px;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      .bt-form .btn-run {
+        grid-column: 1 / -1;
+        background: #1f6feb;
+        color: #fff;
+        border: none;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .bt-form .btn-run:hover {
+        background: #388bfd;
+      }
+      .bt-form .btn-run:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      .bt-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .bt-equity {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      #btChart {
+        width: 100%;
+        height: 300px;
+      }
+      #btCandleChart {
+        width: 100%;
+        height: 400px;
+      }
+      .bt-candle-wrap {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .bt-legend {
+        display: flex;
+        gap: 16px;
+        margin-top: 8px;
+        font-size: 12px;
+        color: #8b949e;
+      }
+      .bt-legend span::before {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 4px;
+        vertical-align: middle;
+      }
+      .bt-legend .buy::before {
+        background: #3fb950;
+      }
+      .bt-legend .sell::before {
+        background: #f85149;
+      }
+      .bt-trades {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .bt-trades table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .bt-trades th {
+        text-align: left;
+        color: #8b949e;
+        padding: 8px 6px;
+        border-bottom: 1px solid #30363d;
+      }
+      .bt-trades td {
+        padding: 6px;
+        border-bottom: 1px solid #21262d;
+      }
+      .bt-history {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 16px;
+      }
+      .bt-history h3 {
+        font-size: 13px;
+        color: #8b949e;
+        margin-bottom: 12px;
+      }
+      .bt-history-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+        gap: 8px;
+        padding: 8px 0;
+        border-bottom: 1px solid #21262d;
+        font-size: 12px;
+      }
+      .bt-history-row.header {
+        color: #8b949e;
+        font-weight: 600;
+      }
+
+      @media (max-width: 768px) {
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .main {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>📊 코인 자동매매 대시보드</h1>
+      <span class="mode mode-paper" id="modeTag">PAPER</span>
+    </div>
+
+    <!-- 탭 네비게이션 -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('trading')">📈 트레이딩</div>
+      <div class="tab" onclick="switchTab('backtest')">🧪 백테스트</div>
+      <div class="tab" onclick="switchTab('reports')">📋 리포트</div>
+    </div>
+
+    <!-- 트레이딩 탭 -->
+    <div id="tab-trading" class="tab-content active">
+      <!-- 상단 카드 -->
+      <div class="grid">
+        <div class="card">
+          <div class="card-label">총 자산</div>
+          <div class="card-value" id="totalAssets">-</div>
+          <div class="card-sub" id="totalPnl"></div>
+        </div>
+        <div class="card">
+          <div class="card-label">현재가</div>
+          <div class="card-value" id="currentPrice">-</div>
+          <div class="card-sub" id="priceChange"></div>
+        </div>
+        <div class="card">
+          <div class="card-label">포지션 손익</div>
+          <div class="card-value" id="unrealizedPnl">-</div>
+          <div class="card-sub" id="positionInfo"></div>
+        </div>
+        <div class="card">
+          <div class="card-label">거래 횟수</div>
+          <div class="card-value" id="tradeCount">0</div>
+          <div class="card-sub" id="botStatus">봇 정지</div>
+        </div>
+      </div>
+
+      <!-- 메인 영역 -->
+      <div class="main">
+        <!-- 차트 -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <h2 id="chartTitle">KRW-BTC 캔들 차트</h2>
+            <div>
+              <select
+                id="chartUnit"
+                style="
+                  background: #0d1117;
+                  color: #c9d1d9;
+                  border: 1px solid #30363d;
+                  padding: 4px 8px;
+                  border-radius: 4px;
+                "
+              >
+                <option value="5">5분</option>
+                <option value="15">15분</option>
+                <option value="60" selected>1시간</option>
+                <option value="240">4시간</option>
+                <option value="day">일봉</option>
+              </select>
+            </div>
+          </div>
+          <div id="chart"></div>
+        </div>
+
+        <!-- 사이드바 -->
+        <div class="sidebar">
+          <!-- 봇 제어 -->
+          <div class="section">
+            <h3>🤖 봇 제어</h3>
+            <div class="bot-config">
+              <label
+                >코인
+                <select id="botMarket" onchange="applyBotConfig()">
+                  <option value="KRW-BTC">BTC (비트코인)</option>
+                  <option value="KRW-ETH">ETH (이더리움)</option>
+                  <option value="KRW-XRP">XRP (리플)</option>
+                  <option value="KRW-SOL">SOL (솔라나)</option>
+                  <option value="KRW-DOGE">DOGE (도지코인)</option>
+                  <option value="KRW-ADA">ADA (카르다노)</option>
+                  <option value="KRW-AVAX">AVAX (아발란치)</option>
+                  <option value="KRW-DOT">DOT (폴카닷)</option>
+                </select>
+              </label>
+              <label
+                >전략
+                <select id="botStrategy" onchange="applyBotConfig()">
+                  <option value="ma-cross">MA Cross</option>
+                  <option value="rsi">RSI</option>
+                  <option value="bollinger">Bollinger Band</option>
+                  <option value="volatility">Volatility Breakout</option>
+                  <option value="macd">MACD</option>
+                  <option value="triple-ema">Triple EMA</option>
+                  <option value="combo">Combo Signal</option>
+                </select>
+              </label>
+              <label
+                >캔들 단위
+                <select id="botUnit" onchange="applyBotConfig()">
+                  <option value="5">5분</option>
+                  <option value="15">15분</option>
+                  <option value="60" selected>1시간</option>
+                  <option value="240">4시간</option>
+                </select>
+              </label>
+            </div>
+            <div class="bot-controls">
+              <button class="btn btn-start" id="btnStart" onclick="sendWS('startBot')">▶ 시작</button>
+              <button class="btn btn-stop" id="btnStop" onclick="sendWS('stopBot')">⏹ 정지</button>
+            </div>
+            <div class="position-info" id="botInfo"></div>
+          </div>
+
+          <!-- 전략 목록 -->
+          <div class="section">
+            <h3>📋 전략</h3>
+            <div id="strategyList"></div>
+          </div>
+
+          <!-- 최근 거래 -->
+          <div class="section">
+            <h3>📜 최근 거래</h3>
+            <div class="trade-log" id="tradeLog">
+              <div style="color: #8b949e; font-size: 12px">거래 내역 없음</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /tab-trading -->
+
+    <!-- 백테스트 탭 -->
+    <div id="tab-backtest" class="tab-content">
+      <div class="bt-container">
+        <!-- 백테스트 폼 -->
+        <div class="bt-form">
+          <label
+            >전략
+            <select id="btStrategy">
+              <option value="ma-cross">MA Cross</option>
+              <option value="rsi">RSI</option>
+              <option value="bollinger">Bollinger Band</option>
+              <option value="volatility">Volatility Breakout</option>
+              <option value="macd">MACD</option>
+              <option value="triple-ema">Triple EMA</option>
+              <option value="combo">Combo Signal</option>
+            </select>
+          </label>
+          <label
+            >마켓
+            <select id="btMarket">
+              <option value="KRW-BTC">KRW-BTC</option>
+              <option value="KRW-ETH">KRW-ETH</option>
+              <option value="KRW-XRP">KRW-XRP</option>
+              <option value="KRW-SOL">KRW-SOL</option>
+            </select>
+          </label>
+          <label
+            >캔들 단위
+            <select id="btUnit">
+              <option value="5">5분</option>
+              <option value="15">15분</option>
+              <option value="60" selected>1시간</option>
+              <option value="240">4시간</option>
+              <option value="day">일봉</option>
+            </select>
+          </label>
+          <label
+            >시작일
+            <input type="date" id="btStartDate" />
+          </label>
+          <label
+            >종료일
+            <input type="date" id="btEndDate" />
+          </label>
+          <label
+            >초기 자본 (원)
+            <input type="number" id="btCapital" value="1000000" min="100000" step="100000" />
+          </label>
+          <label
+            >투자 비율 (%)
+            <input type="number" id="btRisk" value="30" min="10" max="100" step="5" />
+          </label>
+          <label
+            >손절 (ATR×)
+            <input type="number" id="btStopLoss" value="2.0" min="0" max="10" step="0.5" />
+          </label>
+          <label
+            >익절 (ATR×)
+            <input type="number" id="btTakeProfit" value="3.0" min="0" max="10" step="0.5" />
+          </label>
+          <label
+            >트레일링 (ATR×)
+            <input type="number" id="btTrailing" value="2.5" min="0" max="10" step="0.5" />
+          </label>
+          <label style="flex-direction: row; align-items: center; gap: 8px">
+            <input type="checkbox" id="btAllowShort" style="width: auto" />
+            숏(공매도) 허용
+          </label>
+          <label style="flex-direction: row; align-items: center; gap: 8px">
+            <input type="checkbox" id="btMarketDetect" checked style="width: auto" />
+            시장감지 필터
+          </label>
+          <button class="btn-run" id="btnBacktest" onclick="runBacktest()">▶ 백테스트 실행</button>
+        </div>
+
+        <!-- 결과 카드 -->
+        <div class="bt-stats" id="btStats" style="display: none"></div>
+
+        <!-- 캔들 차트 + 매수/매도 마커 -->
+        <div class="bt-candle-wrap" id="btCandleWrap" style="display: none">
+          <h3 style="font-size: 13px; color: #8b949e; margin-bottom: 8px">📊 캔들 차트 & 매매 시그널</h3>
+          <div id="btCandleChart"></div>
+          <div class="bt-legend">
+            <span class="buy">매수 (Buy)</span>
+            <span class="sell">매도 (Sell)</span>
+          </div>
+        </div>
+
+        <!-- 수익 곡선 차트 -->
+        <div class="bt-equity" id="btEquityWrap" style="display: none">
+          <h3 style="font-size: 13px; color: #8b949e; margin-bottom: 8px">📈 수익 곡선</h3>
+          <div id="btChart"></div>
+        </div>
+
+        <!-- 매매 내역 -->
+        <div class="bt-trades" id="btTradesWrap" style="display: none">
+          <h3 style="font-size: 13px; color: #8b949e; margin-bottom: 8px">📋 매매 내역</h3>
+          <div style="max-height: 300px; overflow-y: auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>방향</th>
+                  <th>진입가</th>
+                  <th>청산가</th>
+                  <th>손익</th>
+                  <th>수익률</th>
+                  <th>청산사유</th>
+                  <th>청산시간</th>
+                </tr>
+              </thead>
+              <tbody id="btTradeRows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 과거 백테스트 결과 -->
+        <div class="bt-history">
+          <h3>📂 과거 백테스트 결과</h3>
+          <div class="bt-history-row header">
+            <span>전략</span><span>수익률</span><span>MDD</span><span>승률</span><span>거래수</span>
+          </div>
+          <div id="btHistory"><div style="color: #8b949e; font-size: 12px; padding: 8px 0">결과 없음</div></div>
+        </div>
+      </div>
+    </div>
+    <!-- /tab-backtest -->
+
+    <!-- 리포트 탭 -->
+    <div id="tab-reports" class="tab-content">
+      <div class="rp-container">
+        <!-- 리포트 생성 폼 -->
+        <div class="rp-form">
+          <label
+            >기간
+            <select id="rpPeriod">
+              <option value="daily">일간</option>
+              <option value="weekly">주간</option>
+              <option value="monthly" selected>월간</option>
+            </select>
+          </label>
+          <label
+            >기준일
+            <input type="date" id="rpDate" />
+          </label>
+          <button class="btn-gen" id="btnReport" onclick="genReport()">📋 리포트 생성</button>
+        </div>
+
+        <!-- 리포트 상세 결과 -->
+        <div class="rp-detail" id="rpDetail" style="display: none">
+          <h3 id="rpTitle"></h3>
+          <div class="rp-summary" id="rpSummary"></div>
+          <div class="rp-downloads" id="rpDownloads"></div>
+          <div class="rp-equity" id="rpEquityChart"></div>
+          <div style="overflow-x: auto">
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse">
+              <thead>
+                <tr style="color: #8b949e; border-bottom: 1px solid #30363d">
+                  <th style="padding: 6px; text-align: left">#</th>
+                  <th style="padding: 6px; text-align: left">시간</th>
+                  <th style="padding: 6px; text-align: left">마켓</th>
+                  <th style="padding: 6px; text-align: left">타입</th>
+                  <th style="padding: 6px; text-align: right">손익</th>
+                  <th style="padding: 6px; text-align: right">수수료</th>
+                </tr>
+              </thead>
+              <tbody id="rpTradeRows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 리포트 히스토리 -->
+        <div class="rp-history">
+          <h3>📁 리포트 히스토리</h3>
+          <div id="rpHistory"><div style="color: #8b949e; font-size: 12px; padding: 8px 0">리포트 없음</div></div>
+        </div>
+      </div>
+    </div>
+    <!-- /tab-reports -->
+
+    <script>
+      // 탭 전환
+      function switchTab(name) {
+        document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach((t) => t.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('tab-' + name).classList.add('active');
+        if (name === 'backtest') loadBtHistory();
+        if (name === 'reports') loadRpHistory();
+      }
+
+      // WebSocket 연결
+      const wsUrl = `ws://${location.host}`;
+      let ws;
+      let currentPrice = 0;
+
+      function connectWS() {
+        ws = new WebSocket(wsUrl);
+        ws.onopen = () => console.log('WS 연결');
+        ws.onmessage = (e) => {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'ticker') updateTicker(msg.data);
+          if (msg.type === 'botStatus') updateBotStatus(msg.data);
+        };
+        ws.onclose = () => setTimeout(connectWS, 3000);
+      }
+      connectWS();
+
+      function sendWS(type) {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type }));
+      }
+
+      // 봇 설정 변경 (select 변경 시 호출)
+      function applyBotConfig() {
+        const market = document.getElementById('botMarket').value;
+        const strategyName = document.getElementById('botStrategy').value;
+        const unit = document.getElementById('botUnit').value;
+        if (ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ type: 'configBot', data: { market, strategyName, unit } }));
+        }
+        // 차트 헤더 업데이트
+        document.getElementById('chartTitle').textContent = `${market} 캔들 차트`;
+        // 차트 리로드
+        loadChart(market, document.getElementById('chartUnit').value);
+      }
+
+      // 시세 업데이트
+      function updateTicker(tick) {
+        currentPrice = tick.price;
+        document.getElementById('currentPrice').textContent = Number(tick.price).toLocaleString() + '원';
+        const changeEl = document.getElementById('priceChange');
+        const pct = (tick.change * 100).toFixed(2);
+        changeEl.textContent = `${pct > 0 ? '+' : ''}${pct}%`;
+        changeEl.className = `card-sub ${pct >= 0 ? 'positive' : 'negative'}`;
+      }
+
+      // 봇 상태 업데이트
+      function updateBotStatus(status) {
+        // 모드 태그
+        const modeTag = document.getElementById('modeTag');
+        modeTag.textContent = status.mode === 'live' ? 'LIVE' : 'PAPER';
+        modeTag.className = `mode ${status.mode === 'live' ? 'mode-live' : 'mode-paper'}`;
+
+        // 버튼 상태
+        document.getElementById('btnStart').disabled = status.running;
+        document.getElementById('btnStop').disabled = !status.running;
+
+        // 총 자산
+        const capital = status.capital || 0;
+        const posValue = status.position && currentPrice ? status.position.volume * currentPrice : 0;
+        const total = capital + posValue;
+        document.getElementById('totalAssets').textContent = Math.round(total).toLocaleString() + '원';
+
+        // 포지션 손익
+        const pnlEl = document.getElementById('unrealizedPnl');
+        const posInfoEl = document.getElementById('positionInfo');
+        if (status.position && currentPrice) {
+          const pnl = (currentPrice - status.position.entryPrice) * status.position.volume;
+          const pnlPct = (((currentPrice - status.position.entryPrice) / status.position.entryPrice) * 100).toFixed(2);
+          pnlEl.textContent = `${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()}원`;
+          pnlEl.className = `card-value ${pnl >= 0 ? 'positive' : 'negative'}`;
+          posInfoEl.textContent = `진입가: ${status.position.entryPrice.toLocaleString()}`;
+        } else {
+          pnlEl.textContent = '-';
+          pnlEl.className = 'card-value';
+          posInfoEl.textContent = '포지션 없음';
+        }
+
+        // 거래 횟수
+        document.getElementById('tradeCount').textContent = status.tradeCount || 0;
+        document.getElementById('botStatus').textContent = status.running ? '🟢 봇 실행 중' : '🔴 봇 정지';
+        document.getElementById('botStatus').className = `card-sub ${status.running ? 'positive' : 'negative'}`;
+
+        // 봇 정보
+        document.getElementById('botInfo').innerHTML = `
+          <div><span class="label">전략</span><span>${status.strategy || '-'}</span></div>
+          <div><span class="label">마켓</span><span>${status.market || '-'}</span></div>
+          <div><span class="label">가용 자본</span><span>${Math.round(capital).toLocaleString()}원</span></div>
+          <div><span class="label">투자 비율</span><span>${status.risk?.exposureRatio || 0}%</span></div>
+        `;
+
+        // 셀렉터 동기화 (서버 상태 반영)
+        if (status.market) document.getElementById('botMarket').value = status.market;
+        if (status.strategyName) document.getElementById('botStrategy').value = status.strategyName;
+        if (status.unit) document.getElementById('botUnit').value = status.unit;
+        if (status.market) document.getElementById('chartTitle').textContent = `${status.market} 캔들 차트`;
+      }
+
+      // 전략 목록 로드
+      async function loadStrategies() {
+        try {
+          const res = await fetch('/api/strategies');
+          const strategies = await res.json();
+          const el = document.getElementById('strategyList');
+          el.innerHTML = strategies
+            .map(
+              (s) => `
+            <div class="strategy-item">
+              <span class="strategy-name">${s.name}</span>
+              <div class="toggle ${s.enabled ? 'active' : ''}" data-id="${s.id}" onclick="toggleStrategy('${s.id}', this)"></div>
+            </div>
+          `,
+            )
+            .join('');
+        } catch (e) {
+          console.error('전략 로드 실패', e);
+        }
+      }
+
+      async function toggleStrategy(id, el) {
+        await fetch(`/api/strategies/${id}/toggle`, { method: 'POST' });
+        el.classList.toggle('active');
+      }
+
+      // 매매 기록 로드
+      async function loadTrades() {
+        try {
+          const res = await fetch('/api/trades?limit=20');
+          const trades = await res.json();
+          const el = document.getElementById('tradeLog');
+          if (!trades.length) {
+            el.innerHTML = '<div style="color:#8b949e;font-size:12px;">거래 내역 없음</div>';
+            return;
+          }
+          el.innerHTML = trades
+            .reverse()
+            .map((t) => {
+              const isBuy = t.type === 'buy';
+              const pnlText = t.pnl != null ? `${t.pnl >= 0 ? '+' : ''}${t.pnl.toLocaleString()}원` : '';
+              return `<div class="trade-row">
+              <span style="color:${isBuy ? '#3fb950' : '#f85149'}">${isBuy ? '매수' : '매도'}</span>
+              <span>${t.market || ''}</span>
+              <span>${t.price ? Number(t.price).toLocaleString() : ''}</span>
+              <span class="${(t.pnl || 0) >= 0 ? 'positive' : 'negative'}">${pnlText}</span>
+            </div>`;
+            })
+            .join('');
+        } catch (e) {
+          console.error('거래기록 로드 실패', e);
+        }
+      }
+
+      // 캔들 차트
+      let chart, candleSeries;
+      function initChart() {
+        const container = document.getElementById('chart');
+        chart = LightweightCharts.createChart(container, {
+          width: container.clientWidth,
+          height: 400,
+          layout: { background: { color: '#161b22' }, textColor: '#8b949e' },
+          grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+          timeScale: { timeVisible: true, borderColor: '#30363d' },
+          rightPriceScale: { borderColor: '#30363d' },
+        });
+        candleSeries = chart.addCandlestickSeries({
+          upColor: '#3fb950',
+          downColor: '#f85149',
+          borderUpColor: '#3fb950',
+          borderDownColor: '#f85149',
+          wickUpColor: '#3fb950',
+          wickDownColor: '#f85149',
+        });
+        window.addEventListener('resize', () => chart.applyOptions({ width: container.clientWidth }));
+      }
+
+      async function loadCandles() {
+        const unit = document.getElementById('chartUnit').value;
+        const market = document.getElementById('botMarket').value;
+        try {
+          const res = await fetch(`/api/assets/candles/${encodeURIComponent(market)}?unit=${unit}&count=200`);
+          const candles = await res.json();
+          const data = candles.map((c) => ({
+            time: Math.floor(new Date(c.timestamp).getTime() / 1000),
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+          }));
+          candleSeries.setData(data);
+        } catch (e) {
+          console.error('캔들 로드 실패', e);
+        }
+      }
+
+      function loadChart(market, unit) {
+        loadCandles();
+      }
+
+      document.getElementById('chartUnit').addEventListener('change', loadCandles);
+
+      // ===== 백테스트 기능 =====
+      let btChart, btLineSeries, btCandleChart;
+
+      async function runBacktest() {
+        const btn = document.getElementById('btnBacktest');
+        const startDate = document.getElementById('btStartDate').value;
+        const endDate = document.getElementById('btEndDate').value;
+        if (!startDate || !endDate) return alert('시작일과 종료일을 선택하세요');
+        if (startDate > endDate) return alert('시작일이 종료일보다 뒤입니다');
+
+        btn.disabled = true;
+        btn.textContent = '⏳ 실행 중...';
+
+        try {
+          const body = {
+            strategy: document.getElementById('btStrategy').value,
+            market: document.getElementById('btMarket').value,
+            unit: document.getElementById('btUnit').value,
+            startDate,
+            endDate,
+            capital: parseInt(document.getElementById('btCapital').value),
+            riskPerTrade: parseFloat(document.getElementById('btRisk').value) / 100,
+            stopLossATR: parseFloat(document.getElementById('btStopLoss').value),
+            takeProfitATR: parseFloat(document.getElementById('btTakeProfit').value),
+            trailingStopATR: parseFloat(document.getElementById('btTrailing').value),
+            allowShort: document.getElementById('btAllowShort').checked,
+            useMarketDetector: document.getElementById('btMarketDetect').checked,
+          };
+
+          const res = await fetch('/api/assets/backtest/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const result = await res.json();
+          if (result.error) throw new Error(result.error);
+
+          showBtResults(result, body);
+          loadBtHistory();
+        } catch (e) {
+          alert('백테스트 실패: ' + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '▶ 백테스트 실행';
+        }
+      }
+
+      function showBtResults(r, opts) {
+        // 성과 카드
+        const p = r.performance;
+        const t = r.trades;
+        const statsEl = document.getElementById('btStats');
+        statsEl.style.display = 'grid';
+        const pf = p.profitFactor !== undefined ? p.profitFactor : '-';
+        const longInfo = t.longTrades !== undefined ? `${t.longTrades}회 (${t.longWins}승)` : '-';
+        const shortInfo = t.shortTrades !== undefined ? `${t.shortTrades}회 (${t.shortWins}승)` : '-';
+        const consecInfo = t.maxConsecWin !== undefined ? `승${t.maxConsecWin} / 패${t.maxConsecLose}` : '-';
+        statsEl.innerHTML = [
+          { label: '전략', value: r.strategy, cls: '' },
+          {
+            label: '총 수익률',
+            value: `${p.totalReturn >= 0 ? '+' : ''}${p.totalReturn}%`,
+            cls: p.totalReturn >= 0 ? 'positive' : 'negative',
+          },
+          { label: '최종 자산', value: `${p.finalCapital.toLocaleString()}원`, cls: '' },
+          { label: '최대 낙폭 (MDD)', value: `-${p.maxDrawdown}%`, cls: 'negative' },
+          { label: '샤프 비율', value: p.sharpeRatio.toFixed(3), cls: '' },
+          {
+            label: '손익비 (PF)',
+            value: pf === Infinity ? '∞' : typeof pf === 'number' ? pf.toFixed(2) : pf,
+            cls: pf > 1 ? 'positive' : pf < 1 ? 'negative' : '',
+          },
+          { label: '총 거래', value: `${t.total}회 (승 ${t.wins} / 패 ${t.losses})`, cls: '' },
+          { label: '승률', value: `${t.winRate}%`, cls: t.winRate >= 50 ? 'positive' : 'negative' },
+          {
+            label: '평균 손익',
+            value: `${t.avgPnl >= 0 ? '+' : ''}${t.avgPnl.toLocaleString()}원`,
+            cls: t.avgPnl >= 0 ? 'positive' : 'negative',
+          },
+          { label: '롱 거래', value: longInfo, cls: '' },
+          { label: '숏 거래', value: shortInfo, cls: '' },
+          { label: '연속 승/패', value: consecInfo, cls: '' },
+          { label: '총 수수료', value: `${t.totalFees.toLocaleString()}원`, cls: '' },
+        ]
+          .map(
+            (c) =>
+              `<div class="card"><div class="card-label">${c.label}</div><div class="card-value ${c.cls}" style="font-size:18px">${c.value}</div></div>`,
+          )
+          .join('');
+
+        // ===== 캔들 차트 + 매수/매도 마커 =====
+        const candleWrap = document.getElementById('btCandleWrap');
+        candleWrap.style.display = 'block';
+        if (btCandleChart) btCandleChart.remove();
+        const candleContainer = document.getElementById('btCandleChart');
+        btCandleChart = LightweightCharts.createChart(candleContainer, {
+          width: candleContainer.clientWidth,
+          height: 400,
+          layout: { background: { color: '#161b22' }, textColor: '#8b949e' },
+          grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+          timeScale: { timeVisible: true, borderColor: '#30363d' },
+          rightPriceScale: { borderColor: '#30363d' },
+          crosshair: { mode: 0 },
+        });
+        const btCandleSeries = btCandleChart.addCandlestickSeries({
+          upColor: '#3fb950',
+          downColor: '#f85149',
+          borderUpColor: '#3fb950',
+          borderDownColor: '#f85149',
+          wickUpColor: '#3fb950',
+          wickDownColor: '#f85149',
+        });
+
+        // 캔들 데이터
+        if (r.candles && r.candles.length) {
+          const cData = r.candles.map((c) => ({
+            time: Math.floor(new Date(c.timestamp).getTime() / 1000),
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+          }));
+          btCandleSeries.setData(cData);
+        }
+
+        // 매수/매도 마커
+        if (r.signals && r.signals.length) {
+          const buyMarkers = r.signals
+            .filter((s) => s.action === 'buy')
+            .map((s) => ({
+              time: Math.floor(new Date(s.timestamp).getTime() / 1000),
+              position: 'belowBar',
+              color: '#3fb950',
+              shape: 'arrowUp',
+              text: '매수',
+            }));
+          const sellMarkers = r.signals
+            .filter((s) => s.action === 'sell')
+            .map((s) => ({
+              time: Math.floor(new Date(s.timestamp).getTime() / 1000),
+              position: 'aboveBar',
+              color: '#f85149',
+              shape: 'arrowDown',
+              text: '매도',
+            }));
+          const allMarkers = [...buyMarkers, ...sellMarkers].sort((a, b) => a.time - b.time);
+          btCandleSeries.setMarkers(allMarkers);
+        }
+
+        // 거래량 바 (candle 데이터에서)
+        if (r.candles && r.candles.length) {
+          const volSeries = btCandleChart.addHistogramSeries({
+            priceFormat: { type: 'volume' },
+            priceScaleId: 'vol',
+          });
+          btCandleChart.priceScale('vol').applyOptions({
+            scaleMargins: { top: 0.8, bottom: 0 },
+          });
+          // 캔들에 volume 정보가 없으밀로 가격 변동폭을 바로 표시
+          const volData = r.candles.map((c) => ({
+            time: Math.floor(new Date(c.timestamp).getTime() / 1000),
+            value: Math.abs(c.close - c.open),
+            color: c.close >= c.open ? '#3fb95044' : '#f8514944',
+          }));
+          volSeries.setData(volData);
+        }
+
+        window.addEventListener('resize', () => btCandleChart.applyOptions({ width: candleContainer.clientWidth }));
+
+        // ===== 수익 곡선 =====
+        const eqWrap = document.getElementById('btEquityWrap');
+        eqWrap.style.display = 'block';
+        if (btChart) btChart.remove();
+        const eqContainer = document.getElementById('btChart');
+        btChart = LightweightCharts.createChart(eqContainer, {
+          width: eqContainer.clientWidth,
+          height: 300,
+          layout: { background: { color: '#161b22' }, textColor: '#8b949e' },
+          grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+          timeScale: { timeVisible: true, borderColor: '#30363d' },
+          rightPriceScale: { borderColor: '#30363d' },
+        });
+
+        // 수익 곡선 (area chart)
+        btLineSeries = btChart.addAreaSeries({
+          lineColor: '#58a6ff',
+          lineWidth: 2,
+          topColor: '#58a6ff33',
+          bottomColor: '#58a6ff05',
+        });
+        const eqData = r.equityCurve.map((e) => ({
+          time: Math.floor(new Date(e.timestamp).getTime() / 1000),
+          value: e.equity,
+        }));
+        btLineSeries.setData(eqData);
+
+        // 초기 자본 기준선
+        const baseLine = btChart.addLineSeries({
+          color: '#f0883e66',
+          lineWidth: 1,
+          lineStyle: 2,
+        });
+        if (eqData.length >= 2) {
+          baseLine.setData([
+            { time: eqData[0].time, value: p.initialCapital },
+            { time: eqData[eqData.length - 1].time, value: p.initialCapital },
+          ]);
+        }
+
+        window.addEventListener('resize', () => btChart.applyOptions({ width: eqContainer.clientWidth }));
+
+        // ===== 매매 내역 테이블 =====
+        const trWrap = document.getElementById('btTradesWrap');
+        trWrap.style.display = 'block';
+        document.getElementById('btTradeRows').innerHTML = r.tradeLog
+          .map((t, i) => {
+            const cls = t.pnl >= 0 ? 'positive' : 'negative';
+            const sideEmoji = t.side === 'short' ? '🔴S' : '🟢L';
+            const reason = t.exitReason || (t.forced ? '강제청산' : '전략');
+            return `<tr>
+            <td>${i + 1}</td>
+            <td>${sideEmoji}</td>
+            <td>${Math.round(t.entryPrice).toLocaleString()}</td>
+            <td>${Math.round(t.exitPrice).toLocaleString()}</td>
+            <td class="${cls}">${t.pnl >= 0 ? '+' : ''}${Math.round(t.pnl).toLocaleString()}원</td>
+            <td class="${cls}">${t.pnlPercent.toFixed(2)}%</td>
+            <td style="font-size:11px">${reason}</td>
+            <td>${t.exitTime ? new Date(t.exitTime).toLocaleString('ko') : ''}${t.forced ? ' ⚠️' : ''}</td>
+          </tr>`;
+          })
+          .join('');
+      }
+
+      async function loadBtHistory() {
+        try {
+          const res = await fetch('/api/assets/backtest');
+          const list = await res.json();
+          const el = document.getElementById('btHistory');
+          if (!list.length) {
+            el.innerHTML = '<div style="color:#8b949e;font-size:12px;padding:8px 0">결과 없음</div>';
+            return;
+          }
+          el.innerHTML = list
+            .reverse()
+            .slice(0, 20)
+            .map((r) => {
+              const retCls = (r.totalReturn || 0) >= 0 ? 'positive' : 'negative';
+              return `<div class="bt-history-row">
+              <span>${r.strategy || '-'}</span>
+              <span class="${retCls}">${r.totalReturn != null ? (r.totalReturn >= 0 ? '+' : '') + r.totalReturn + '%' : '-'}</span>
+              <span class="negative">${r.maxDrawdown != null ? '-' + r.maxDrawdown + '%' : '-'}</span>
+              <span>${r.winRate != null ? r.winRate + '%' : '-'}</span>
+              <span>${r.totalTrades || 0}회</span>
+            </div>`;
+            })
+            .join('');
+        } catch (e) {
+          console.error('백테스트 기록 로드 실패', e);
+        }
+      }
+
+      // 초기화
+      initChart();
+      loadCandles();
+      loadStrategies();
+      loadTrades();
+      setInterval(loadTrades, 10000);
+      setInterval(loadCandles, 60000);
+
+      // 백테스트 날짜 기본값: 최근 30일
+      const today = new Date();
+      const ago30 = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      document.getElementById('btEndDate').value = today.toISOString().slice(0, 10);
+      document.getElementById('btStartDate').value = ago30.toISOString().slice(0, 10);
+      document.getElementById('rpDate').value = today.toISOString().slice(0, 10);
+
+      // ===== 리포트 기능 =====
+      let rpChart;
+
+      async function genReport() {
+        const btn = document.getElementById('btnReport');
+        btn.disabled = true;
+        btn.textContent = '⏳ 생성 중...';
+        try {
+          const body = {
+            period: document.getElementById('rpPeriod').value,
+            date: document.getElementById('rpDate').value,
+          };
+          const res = await fetch('/api/reports/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const result = await res.json();
+          if (result.error) throw new Error(result.error);
+          showReport(result);
+          loadRpHistory();
+        } catch (e) {
+          alert('리포트 생성 실패: ' + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '📋 리포트 생성';
+        }
+      }
+
+      function showReport(r) {
+        const detail = document.getElementById('rpDetail');
+        detail.style.display = 'block';
+        document.getElementById('rpTitle').textContent = r.label;
+
+        // 요약 카드
+        const s = r.summary;
+        document.getElementById('rpSummary').innerHTML = [
+          { label: '총 거래', value: `${s.totalTrades}회`, cls: '' },
+          { label: '승/패', value: `${s.wins}승 ${s.losses}패`, cls: '' },
+          { label: '승률', value: `${s.winRate}%`, cls: s.winRate >= 50 ? 'positive' : 'negative' },
+          {
+            label: '총 손익',
+            value: `${s.totalPnl >= 0 ? '+' : ''}${s.totalPnl.toLocaleString()}원`,
+            cls: s.totalPnl >= 0 ? 'positive' : 'negative',
+          },
+          {
+            label: '순 손익',
+            value: `${s.netPnl >= 0 ? '+' : ''}${s.netPnl.toLocaleString()}원`,
+            cls: s.netPnl >= 0 ? 'positive' : 'negative',
+          },
+          { label: '총 수수료', value: `${s.totalFees.toLocaleString()}원`, cls: '' },
+          {
+            label: '평균 손익',
+            value: `${s.avgPnl >= 0 ? '+' : ''}${s.avgPnl.toLocaleString()}원`,
+            cls: s.avgPnl >= 0 ? 'positive' : 'negative',
+          },
+          { label: 'MDD', value: `-${s.maxDrawdown}%`, cls: 'negative' },
+          { label: '최대 이익', value: `+${s.bestTrade.toLocaleString()}원`, cls: 'positive' },
+          { label: '최대 손실', value: `${s.worstTrade.toLocaleString()}원`, cls: 'negative' },
+        ]
+          .map(
+            (c) =>
+              `<div class="card"><div class="card-label">${c.label}</div><div class="card-value ${c.cls}" style="font-size:16px">${c.value}</div></div>`,
+          )
+          .join('');
+
+        // 다운로드 버튼
+        document.getElementById('rpDownloads').innerHTML = `
+          <a class="csv-btn" href="/api/reports/${r.file}/csv" download>📥 CSV 다운로드</a>
+          <a class="pdf-btn" href="/api/reports/${r.file}/pdf" download>📄 PDF 다운로드</a>
+        `;
+
+        // 수익 곡선 차트
+        const eqContainer = document.getElementById('rpEquityChart');
+        if (rpChart) rpChart.remove();
+        if (r.equityCurve && r.equityCurve.length) {
+          rpChart = LightweightCharts.createChart(eqContainer, {
+            width: eqContainer.clientWidth,
+            height: 250,
+            layout: { background: { color: '#161b22' }, textColor: '#8b949e' },
+            grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+            timeScale: { borderColor: '#30363d' },
+            rightPriceScale: { borderColor: '#30363d' },
+          });
+          const barSeries = rpChart.addHistogramSeries({
+            color: '#3fb950',
+          });
+          barSeries.setData(
+            r.equityCurve.map((e) => ({
+              time: e.date,
+              value: e.pnl,
+              color: e.pnl >= 0 ? '#3fb950' : '#f85149',
+            })),
+          );
+          // 누적 라인
+          const lineSeries = rpChart.addLineSeries({ color: '#58a6ff', lineWidth: 2 });
+          lineSeries.setData(r.equityCurve.map((e) => ({ time: e.date, value: e.cumPnl })));
+          window.addEventListener('resize', () => rpChart.applyOptions({ width: eqContainer.clientWidth }));
+        } else {
+          eqContainer.innerHTML =
+            '<div style="color:#8b949e;font-size:12px;padding:20px;text-align:center">해당 기간 거래 데이터 없음</div>';
+        }
+
+        // 매매 내역
+        const trades = r.trades || [];
+        document.getElementById('rpTradeRows').innerHTML = trades.length
+          ? trades
+              .map((t, i) => {
+                const pnl = Math.round(t.pnl || 0);
+                const cls = pnl >= 0 ? 'positive' : 'negative';
+                return `<tr style="border-bottom:1px solid #21262d">
+                <td style="padding:6px">${i + 1}</td>
+                <td style="padding:6px">${(t.createdAt || t.exitTime || t.time || '').slice(0, 19)}</td>
+                <td style="padding:6px">${t.market || '-'}</td>
+                <td style="padding:6px">${t.side || t.type || '-'}</td>
+                <td style="padding:6px;text-align:right" class="${cls}">${pnl >= 0 ? '+' : ''}${pnl.toLocaleString()}원</td>
+                <td style="padding:6px;text-align:right">${Math.round(t.fee || 0).toLocaleString()}원</td>
+              </tr>`;
+              })
+              .join('')
+          : '<tr><td colspan="6" style="padding:12px;color:#8b949e;text-align:center">거래 내역 없음</td></tr>';
+      }
+
+      async function loadRpHistory() {
+        try {
+          const res = await fetch('/api/reports');
+          const list = await res.json();
+          const el = document.getElementById('rpHistory');
+          if (!list.length) {
+            el.innerHTML = '<div style="color:#8b949e;font-size:12px;padding:8px 0">리포트 없음</div>';
+            return;
+          }
+          el.innerHTML =
+            `<div class="rp-history-row"><span>리포트</span><span>거래수</span><span>총 손익</span><span>승률</span><span>생성일</span><span></span></div>` +
+            list
+              .slice(0, 20)
+              .map((r) => {
+                const pnlCls = (r.totalPnl || 0) >= 0 ? 'positive' : 'negative';
+                return `<div class="rp-history-row">
+                <span>${r.label || r.file}</span>
+                <span>${r.totalTrades || 0}회</span>
+                <span class="${pnlCls}">${r.totalPnl != null ? (r.totalPnl >= 0 ? '+' : '') + r.totalPnl.toLocaleString() + '원' : '-'}</span>
+                <span>${r.winRate != null ? r.winRate + '%' : '-'}</span>
+                <span>${(r.generatedAt || '').slice(0, 10)}</span>
+                <button class="btn-view" onclick="viewReport('${r.file}')">보기</button>
+              </div>`;
+              })
+              .join('');
+        } catch (e) {
+          console.error('리포트 히스토리 로드 실패', e);
+        }
+      }
+
+      async function viewReport(file) {
+        try {
+          const res = await fetch('/api/reports/' + file);
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          showReport({ ...data, file });
+        } catch (e) {
+          alert('리포트 로드 실패: ' + e.message);
+        }
+      }
+    </script>
+  </body>
+</html>
