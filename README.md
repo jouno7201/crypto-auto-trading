@@ -5,12 +5,14 @@
 ## 📋 주요 기능
 
 ### 🤖 자동매매 봇
-- **7개 자동매매 전략** 탑재  
+
+- **7개 자동매매 전략** 탑재
 - 업비트 거래소 연동 (REST + WebSocket)
 - 페이퍼/실거래 모드 전환 (`TRADING_MODE`)
 - 대시보드에서 코인/전략/봉단위 실시간 변경
 
 ### 📊 백테스트 엔진 v2
+
 - **동적 손절(ATR-SL)** / 익절(ATR-TP) / 트레일링 스탑
 - **분할 매수** (기본 30%, 1~100% 조절 가능)
 - **숏(공매도) 지원** — 마진 기반 정확한 손익 계산
@@ -20,6 +22,7 @@
 - 상세 거래 로그 (진입/청산 사유, 방향)
 
 ### 🖥️ 실시간 대시보드
+
 - 실시간 시세 (WebSocket)
 - 자산 현황 + 차트 (LightweightCharts)
 - 백테스트 UI (파라미터 조절 + 결과 시각화)
@@ -28,25 +31,25 @@
 
 ### 📈 7개 트레이딩 전략
 
-| 전략 | 설명 | 핵심 지표 |
-|---|---|---|
-| **MA Cross** | 이동평균선 교차 | SMA 단기/장기 |
-| **RSI** | 과매수/과매도 반전 | RSI 14 |
-| **Bollinger Band** | 볼린저 밴드 돌파/반전 | BB 20/2σ |
-| **Volatility Breakout** | 변동성 돌파 (래리 윌리엄스) | ATR, Range |
-| **MACD** | MACD 시그널 교차 | MACD 12/26/9 |
-| **Triple EMA** | 3중 지수이동평균 추세 | EMA 8/21/55 |
-| **Combo Signal** | RSI + BB + MACD 복합 | 다중 지표 합산 |
+| 전략                    | 설명                        | 핵심 지표      |
+| ----------------------- | --------------------------- | -------------- |
+| **MA Cross**            | 이동평균선 교차             | SMA 단기/장기  |
+| **RSI**                 | 과매수/과매도 반전          | RSI 14         |
+| **Bollinger Band**      | 볼린저 밴드 돌파/반전       | BB 20/2σ       |
+| **Volatility Breakout** | 변동성 돌파 (래리 윌리엄스) | ATR, Range     |
+| **MACD**                | MACD 시그널 교차            | MACD 12/26/9   |
+| **Triple EMA**          | 3중 지수이동평균 추세       | EMA 8/21/55    |
+| **Combo Signal**        | RSI + BB + MACD 복합        | 다중 지표 합산 |
 
 ### 🏆 백테스트 최적 조합 (2025-01 ~ 2026-04, KRW-BTC)
 
-| 순위 | 전략 | 봉 | 설정 | 수익률 | MDD | PF |
-|---|---|---|---|---|---|---|
-| 1 | MA Cross | 60분 | Long+Short 30% | +1.36% | 1.90% | 1.97 |
-| 2 | MA Cross | 60분 | Long+Short 50% | +2.25% | 3.15% | 1.95 |
-| 3 | Triple EMA | 240분 | Long+Short 넓은SL | +0.64% | 9.09% | 1.04 |
-| 4 | MA Cross | 240분 | Long 감지OFF | +0.47% | 2.46% | 1.14 |
-| 5 | RSI | 60분 | Long+Short 30% | +0.19% | 2.23% | 1.06 |
+| 순위 | 전략       | 봉    | 설정              | 수익률 | MDD   | PF   |
+| ---- | ---------- | ----- | ----------------- | ------ | ----- | ---- |
+| 1    | MA Cross   | 60분  | Long+Short 30%    | +1.36% | 1.90% | 1.97 |
+| 2    | MA Cross   | 60분  | Long+Short 50%    | +2.25% | 3.15% | 1.95 |
+| 3    | Triple EMA | 240분 | Long+Short 넓은SL | +0.64% | 9.09% | 1.04 |
+| 4    | MA Cross   | 240분 | Long 감지OFF      | +0.47% | 2.46% | 1.14 |
+| 5    | RSI        | 60분  | Long+Short 30%    | +0.19% | 2.23% | 1.06 |
 
 > 168개 조합(7전략 × 2타임프레임 × 12설정) 전수 테스트 결과
 
@@ -151,34 +154,34 @@ crypto-auto-trading/
 
 ## 🔧 백테스트 옵션
 
-| 파라미터 | 기본값 | 설명 |
-|---|---|---|
-| `riskPerTrade` | 0.3 (30%) | 1회 투자 비율 |
-| `stopLossATR` | 2.0 | ATR × N 손절 (0=비활성) |
-| `takeProfitATR` | 3.0 | ATR × N 익절 (0=비활성) |
-| `trailingStopATR` | 2.5 | ATR × N 트레일링 스탑 |
-| `allowShort` | false | 숏(공매도) 허용 |
-| `useMarketDetector` | true | ADX 시장 상태 감지기 사용 |
-| `cooldownBars` | 3 | 손절 후 재진입 대기 봉 수 |
-| `maxConsecutiveLoss` | 5 | 연속 손실 제한 |
+| 파라미터             | 기본값    | 설명                      |
+| -------------------- | --------- | ------------------------- |
+| `riskPerTrade`       | 0.3 (30%) | 1회 투자 비율             |
+| `stopLossATR`        | 2.0       | ATR × N 손절 (0=비활성)   |
+| `takeProfitATR`      | 3.0       | ATR × N 익절 (0=비활성)   |
+| `trailingStopATR`    | 2.5       | ATR × N 트레일링 스탑     |
+| `allowShort`         | false     | 숏(공매도) 허용           |
+| `useMarketDetector`  | true      | ADX 시장 상태 감지기 사용 |
+| `cooldownBars`       | 3         | 손절 후 재진입 대기 봉 수 |
+| `maxConsecutiveLoss` | 5         | 연속 손실 제한            |
 
 ---
 
 ## 📡 API 엔드포인트
 
-| Method | Path | 설명 |
-|---|---|---|
-| GET | `/health` | 헬스체크 |
-| GET | `/api/strategies` | 전략 목록 |
-| GET | `/api/assets/summary` | 자산 요약 |
-| GET | `/api/assets/bot` | 봇 상태 |
-| POST | `/api/assets/bot/start` | 봇 시작 |
-| POST | `/api/assets/bot/stop` | 봇 중지 |
-| POST | `/api/assets/bot/configure` | 봇 설정 변경 |
-| POST | `/api/assets/backtest/run` | 백테스트 실행 |
-| GET | `/api/trades` | 거래 내역 |
-| GET | `/api/reports` | 리포트 목록 |
-| GET | `/api/reports/:name/pdf` | PDF 다운로드 |
+| Method | Path                        | 설명          |
+| ------ | --------------------------- | ------------- |
+| GET    | `/health`                   | 헬스체크      |
+| GET    | `/api/strategies`           | 전략 목록     |
+| GET    | `/api/assets/summary`       | 자산 요약     |
+| GET    | `/api/assets/bot`           | 봇 상태       |
+| POST   | `/api/assets/bot/start`     | 봇 시작       |
+| POST   | `/api/assets/bot/stop`      | 봇 중지       |
+| POST   | `/api/assets/bot/configure` | 봇 설정 변경  |
+| POST   | `/api/assets/backtest/run`  | 백테스트 실행 |
+| GET    | `/api/trades`               | 거래 내역     |
+| GET    | `/api/reports`              | 리포트 목록   |
+| GET    | `/api/reports/:name/pdf`    | PDF 다운로드  |
 
 ---
 
