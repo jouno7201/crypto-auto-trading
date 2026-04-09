@@ -168,13 +168,31 @@ function runBacktest(strategy, candles, options = {}) {
     // 연속 손실 제한: 정지 상태에서 시그널 무시 (포지션 관리는 계속)
     const tradingSuspended = maxConsecutiveLoss > 0 && consecutiveLosses >= maxConsecutiveLoss;
 
+    // ========== 시장 상태별 동적 SL/TP/트레일링 조정 ==========
+    let dynSL = stopLossATR;
+    let dynTP = takeProfitATR;
+    let dynTS = trailingStopATR;
+    if (useMarketDetector && marketState) {
+      const ms = marketState.state;
+      if (ms === 'volatile') {
+        // 변동성 폭발: SL 확대 (노이즈 스탑아웃 방지), TP 확대
+        dynSL = stopLossATR * 1.3;
+        dynTP = takeProfitATR * 1.2;
+        dynTS = trailingStopATR * 1.3;
+      } else if (ms === 'trending-up' || ms === 'trending-down') {
+        // 추세장: 트레일링 약간 타이트하게 (수익 확보)
+        dynTS = trailingStopATR * 0.85;
+      }
+      // ranging: 기본값 유지
+    }
+
     // ========== 롱 포지션 관리 ==========
     if (positionSide === 'long' && position > 0) {
       if (currCandle.high > peakSinceEntry) peakSinceEntry = currCandle.high;
 
-      // 1) 손절: 현재가 < 진입가 - ATR*N
-      if (stopLossATR > 0 && currATR > 0) {
-        const slPrice = entryPrice - currATR * stopLossATR;
+      // 1) 손절: 현재가 < 진입가 - ATR*N (시장상태 반영)
+      if (dynSL > 0 && currATR > 0) {
+        const slPrice = entryPrice - currATR * dynSL;
         if (currCandle.low <= slPrice) {
           closeLong(i, slPrice, '손절(ATR-SL)');
           trackEquity(i, currPrice);
@@ -182,9 +200,9 @@ function runBacktest(strategy, candles, options = {}) {
         }
       }
 
-      // 2) 익절: 현재가 > 진입가 + ATR*N
-      if (takeProfitATR > 0 && currATR > 0) {
-        const tpPrice = entryPrice + currATR * takeProfitATR;
+      // 2) 익절: 현재가 > 진입가 + ATR*N (시장상태 반영)
+      if (dynTP > 0 && currATR > 0) {
+        const tpPrice = entryPrice + currATR * dynTP;
         if (currCandle.high >= tpPrice) {
           closeLong(i, tpPrice, '익절(ATR-TP)');
           trackEquity(i, currPrice);
@@ -192,9 +210,9 @@ function runBacktest(strategy, candles, options = {}) {
         }
       }
 
-      // 3) 트레일링 스탑: 고점 - ATR*N
-      if (trailingStopATR > 0 && currATR > 0 && peakSinceEntry > 0) {
-        const tsPrice = peakSinceEntry - currATR * trailingStopATR;
+      // 3) 트레일링 스탑: 고점 - ATR*N (시장상태 반영)
+      if (dynTS > 0 && currATR > 0 && peakSinceEntry > 0) {
+        const tsPrice = peakSinceEntry - currATR * dynTS;
         if (tsPrice > entryPrice && currCandle.low <= tsPrice) {
           closeLong(i, tsPrice, '트레일링스탑');
           trackEquity(i, currPrice);
@@ -214,9 +232,9 @@ function runBacktest(strategy, candles, options = {}) {
     if (positionSide === 'short' && position < 0) {
       if (currCandle.low < troughSinceEntry) troughSinceEntry = currCandle.low;
 
-      // 1) 손절: 현재가 > 진입가 + ATR*N
-      if (stopLossATR > 0 && currATR > 0) {
-        const slPrice = entryPrice + currATR * stopLossATR;
+      // 1) 손절: 현재가 > 진입가 + ATR*N (시장상태 반영)
+      if (dynSL > 0 && currATR > 0) {
+        const slPrice = entryPrice + currATR * dynSL;
         if (currCandle.high >= slPrice) {
           closeShort(i, slPrice, '손절(ATR-SL)');
           trackEquity(i, currPrice);
@@ -224,9 +242,9 @@ function runBacktest(strategy, candles, options = {}) {
         }
       }
 
-      // 2) 익절: 현재가 < 진입가 - ATR*N
-      if (takeProfitATR > 0 && currATR > 0) {
-        const tpPrice = entryPrice - currATR * takeProfitATR;
+      // 2) 익절: 현재가 < 진입가 - ATR*N (시장상태 반영)
+      if (dynTP > 0 && currATR > 0) {
+        const tpPrice = entryPrice - currATR * dynTP;
         if (currCandle.low <= tpPrice) {
           closeShort(i, tpPrice, '익절(ATR-TP)');
           trackEquity(i, currPrice);
@@ -234,9 +252,9 @@ function runBacktest(strategy, candles, options = {}) {
         }
       }
 
-      // 3) 트레일링 스탑: 저점 + ATR*N
-      if (trailingStopATR > 0 && currATR > 0 && troughSinceEntry < Infinity) {
-        const tsPrice = troughSinceEntry + currATR * trailingStopATR;
+      // 3) 트레일링 스탑: 저점 + ATR*N (시장상태 반영)
+      if (dynTS > 0 && currATR > 0 && troughSinceEntry < Infinity) {
+        const tsPrice = troughSinceEntry + currATR * dynTS;
         if (tsPrice < entryPrice && currCandle.high >= tsPrice) {
           closeShort(i, tsPrice, '트레일링스탑');
           trackEquity(i, currPrice);
@@ -255,12 +273,24 @@ function runBacktest(strategy, candles, options = {}) {
     // ========== 신규 진입 ==========
     const canTrade = !tradingSuspended && cooldownRemain <= 0;
 
-    // 시장 감지 필터: 횡보장에서는 추세 전략 시그널 무시
+    // 시장 감지 필터: 시장 상태별 차별화된 진입 조건
     let filteredAction = signal.action;
     if (useMarketDetector && marketState) {
-      if (marketState.state === 'ranging' && (signal.action === 'buy' || signal.action === 'sell')) {
-        // 횡보장: 강한 시그널(0.8+)만 허용
-        if (signal.strength < 0.8) filteredAction = 'hold';
+      const st = marketState.state;
+      const str = signal.strength || 0;
+
+      if (st === 'ranging' && (signal.action === 'buy' || signal.action === 'sell')) {
+        // 횡보장: strength 0.6 이상만 허용
+        if (str < 0.6) filteredAction = 'hold';
+      } else if (st === 'volatile' && (signal.action === 'buy' || signal.action === 'sell')) {
+        // 변동성 폭발: strength 0.7 이상만 허용 (방향 불확실하므로 더 강한 시그널 요구)
+        if (str < 0.7) filteredAction = 'hold';
+      } else if (st === 'trending-up' && signal.action === 'sell' && !allowShort) {
+        // 상승추세에서 롱온리 모드 시 약한 매도 시그널 무시
+        if (str < 0.7) filteredAction = 'hold';
+      } else if (st === 'trending-down' && signal.action === 'buy') {
+        // 하락추세에서 약한 매수 시그널 무시
+        if (str < 0.7) filteredAction = 'hold';
       }
     }
 

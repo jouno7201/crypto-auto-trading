@@ -13,7 +13,7 @@ class VolatilityBreakout extends BaseStrategy {
   constructor(params = {}) {
     super('Volatility Breakout', {
       k: 0.5,
-      noiseMaxRatio: 0.6,
+      noiseMaxRatio: 0.8,
       noiseLookback: 20,
       atrMultiplier: 2.0,
       ...params,
@@ -48,15 +48,26 @@ class VolatilityBreakout extends BaseStrategy {
     const atrValues = atr(candles, 14);
     const currATR = atrValues.length > 0 ? atrValues[atrValues.length - 1] : range;
 
-    // 매수: 목표가 돌파 + 노이즈 낮음
-    if (curr.close > targetPrice && range > 0 && noiseRatio < noiseMaxRatio) {
-      const excess = (curr.close - targetPrice) / currATR;
-      const strength = Math.min(excess * 0.5 + 0.4, 1);
-      return {
-        action: 'buy',
-        reason: `변동성 돌파 (목표:${targetPrice.toFixed(0)}, 노이즈:${noiseRatio.toFixed(2)})`,
-        strength,
-      };
+    // EMA 추세 확인
+    const closes = candles.map((c) => c.close);
+    const ema20 = ema(closes, 20);
+    const currEMA = ema20.length > 0 ? ema20[ema20.length - 1] : curr.close;
+    const isUptrend = curr.close > currEMA;
+
+    // 매수: 목표가 돌파 + 노이즈 낮음 (+ 추세 확인 시 노이즈 조건 완화)
+    if (curr.close > targetPrice && range > 0) {
+      const passNoise = noiseRatio < noiseMaxRatio;
+      const passTrend = isUptrend && noiseRatio < noiseMaxRatio + 0.1;
+      if (passNoise || passTrend) {
+        const excess = (curr.close - targetPrice) / currATR;
+        const trendBonus = isUptrend ? 0.1 : 0;
+        const strength = Math.min(excess * 0.5 + 0.4 + trendBonus, 1);
+        return {
+          action: 'buy',
+          reason: `변동성 돌파 (목표:${targetPrice.toFixed(0)}, 노이즈:${noiseRatio.toFixed(2)}${isUptrend ? ', 상승추세' : ''})`,
+          strength,
+        };
+      }
     }
 
     // 매도: ATR 기반 트레일링 스탑 하향 이탈

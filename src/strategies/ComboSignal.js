@@ -12,8 +12,8 @@ const { ema, rsi, macd, bollingerBands, atr } = require('./indicators');
 class ComboSignal extends BaseStrategy {
   constructor(params = {}) {
     super('Combo Signal', {
-      buyThreshold: 0.3,
-      sellThreshold: -0.3,
+      buyThreshold: 0.15,
+      sellThreshold: -0.15,
       rsiPeriod: 14,
       macdFast: 12,
       macdSlow: 26,
@@ -90,8 +90,8 @@ class ComboSignal extends BaseStrategy {
     else if (priceVsTrend < -0.02) trendScore = -0.8;
     else trendScore = -0.3;
 
-    // 가중치 합산 (총합 범위: -1 ~ +1)
-    const weights = { rsi: 0.25, macd: 0.3, bb: 0.2, trend: 0.25 };
+    // 가중치 합산 (MACD 비중 상향: 테스트 결과 가장 안정적)
+    const weights = { rsi: 0.2, macd: 0.35, bb: 0.2, trend: 0.25 };
     const totalScore =
       rsiScore * weights.rsi + macdScore * weights.macd + bbScore * weights.bb + trendScore * weights.trend;
 

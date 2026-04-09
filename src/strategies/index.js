@@ -11,15 +11,18 @@ const MACDStrategy = require('./MACDStrategy');
 const TripleEMA = require('./TripleEMA');
 const ComboSignal = require('./ComboSignal');
 
-// 전략 이름 → 클래스 매핑
+// 전략 이름 → 클래스 매핑 (별칭 포함)
 const STRATEGIES = {
   'ma-cross': MACross,
   rsi: RSIStrategy,
   bollinger: BollingerBand,
+  'bollinger-band': BollingerBand,
   volatility: VolatilityBreakout,
+  'volatility-breakout': VolatilityBreakout,
   macd: MACDStrategy,
   'triple-ema': TripleEMA,
   combo: ComboSignal,
+  'combo-signal': ComboSignal,
 };
 
 /**
