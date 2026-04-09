@@ -22,11 +22,21 @@ function detectMarketState(candles, opts = {}) {
     adxTrendThreshold = 25,
     adxStrongThreshold = 40,
     atrPeriod = 14,
-    volatilityLookback = 20,   // ATR% 평균을 구할 기간
+    volatilityLookback = 20, // ATR% 평균을 구할 기간
     volatilityMultiplier = 1.8, // 평균 ATR% × 1.8 이상이면 volatile
   } = opts;
 
-  const unknown = { state: 'unknown', adx: 0, plusDI: 0, minusDI: 0, atr: 0, atrPercent: 0, trendScore: 0, volatilityRatio: 1, details: '데이터 부족' };
+  const unknown = {
+    state: 'unknown',
+    adx: 0,
+    plusDI: 0,
+    minusDI: 0,
+    atr: 0,
+    atrPercent: 0,
+    trendScore: 0,
+    volatilityRatio: 1,
+    details: '데이터 부족',
+  };
 
   if (candles.length < adxPeriod * 3) return unknown;
 
@@ -46,10 +56,10 @@ function detectMarketState(candles, opts = {}) {
 
   // --- 변동성 비율: 현재 ATR% / 최근 평균 ATR% ---
   const recentATRs = atrValues.slice(-volatilityLookback);
-  const closes = candles.slice(-volatilityLookback).map(c => c.close);
+  const closes = candles.slice(-volatilityLookback).map((c) => c.close);
   let avgAtrPercent = 0;
   if (recentATRs.length >= 5 && closes.length >= 5) {
-    const pcts = recentATRs.map((a, i) => closes[i] > 0 ? (a / closes[i]) * 100 : 0);
+    const pcts = recentATRs.map((a, i) => (closes[i] > 0 ? (a / closes[i]) * 100 : 0));
     avgAtrPercent = pcts.reduce((s, v) => s + v, 0) / pcts.length;
   }
   const volatilityRatio = avgAtrPercent > 0 ? atrPercent / avgAtrPercent : 1;

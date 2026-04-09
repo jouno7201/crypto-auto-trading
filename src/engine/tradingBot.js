@@ -11,6 +11,7 @@ const { executeOrder } = require('./executor');
 const RiskManager = require('./riskManager');
 const { createStrategy } = require('../strategies');
 const store = require('../store/jsonStore');
+const notify = require('./notifier');
 
 class TradingBot {
   constructor(config = {}) {
@@ -59,9 +60,20 @@ class TradingBot {
     console.log(`  자본: ${this.capital.toLocaleString()}원`);
     console.log('═══════════════════════════════════════\n');
 
+    // 봇 시작 알림
+    notify.notifyBotStart({
+      market: this.config.market,
+      strategy: this.strategy.name,
+      mode: process.env.TRADING_MODE || 'paper',
+      capital: this.capital,
+    });
+
     // 즉시 한 번 실행 후 인터벌
     this.tick();
     this.intervalId = setInterval(() => this.tick(), this.config.intervalMs);
+
+    // 일일 리포트 (매일 09:00)
+    this._scheduleDailyReport();
   }
 
   /**
@@ -76,6 +88,12 @@ class TradingBot {
     }
     console.log('\n[봇] 트레이딩 봇 정지');
     this._saveState();
+    if (this._dailyTimer) { clearTimeout(this._dailyTimer); this._dailyTimer = null; }
+    notify.notifyBotStop({
+      market: this.config.market,
+      capital: this.capital,
+      tradeCount: this.tradeCount,
+    });
   }
 
   /**
@@ -138,6 +156,7 @@ class TradingBot {
       }
     } catch (err) {
       console.error(`[봇] 에러: ${err.message}`);
+      notify.notifyError({ context: 'tick()', message: err.message });
     }
   }
 
@@ -163,6 +182,16 @@ class TradingBot {
         `  ✅ 매수 체결 | 가격: ${this.position.entryPrice.toLocaleString()} | 금액: ${amount.toLocaleString()}원`,
       );
       console.log(`  📍 손절: ${exits.stopLoss.toLocaleString()} | 익절: ${exits.takeProfit.toLocaleString()}`);
+
+      notify.notifyBuy({
+        market: this.config.market,
+        price: this.position.entryPrice,
+        amount,
+        reason,
+        strategy: this.strategy.name,
+        stopLoss: exits.stopLoss,
+        takeProfit: exits.takeProfit,
+      });
 
       store.append('trades.json', {
         type: 'buy',
@@ -197,6 +226,16 @@ class TradingBot {
         `  ${emoji} 매도 체결 | 가격: ${exitPrice.toLocaleString()} | 손익: ${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()}원 (${pnlPercent}%)`,
       );
 
+      notify.notifySell({
+        market: this.config.market,
+        entryPrice: this.position.entryPrice,
+        exitPrice,
+        pnl: Math.round(pnl),
+        pnlPercent,
+        reason,
+        strategy: this.strategy.name,
+      });
+
       store.append('trades.json', {
         type: 'sell',
         market: this.config.market,
@@ -225,6 +264,30 @@ class TradingBot {
       running: this.running,
       savedAt: new Date().toISOString(),
     });
+  }
+
+  /**
+   * 일일 리포트 스케줄러 (매일 09:00)
+   */
+  _scheduleDailyReport() {
+    const now = new Date();
+    const next9am = new Date(now);
+    next9am.setHours(9, 0, 0, 0);
+    if (now >= next9am) next9am.setDate(next9am.getDate() + 1);
+    const delay = next9am - now;
+
+    this._dailyTimer = setTimeout(() => {
+      notify.notifyDailyReport({
+        market: this.config.market,
+        capital: this.capital,
+        initialCapital: this.config.initialCapital,
+        todayPnl: null,
+        todayTrades: 0,
+        position: this.position,
+      });
+      // 다음 날 재스케줄
+      if (this.running) this._scheduleDailyReport();
+    }, delay);
   }
 
   /**

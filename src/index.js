@@ -30,6 +30,22 @@ app.use('/api/trades', require('./routes/trades'));
 app.use('/api/assets', require('./routes/assets'));
 app.use('/api/reports', require('./routes/reports'));
 
+// 알림 테스트 API
+const notify = require('./engine/notifier');
+app.post('/api/notify/test', async (req, res) => {
+  try {
+    await notify.notifyBotStart({
+      market: 'KRW-BTC',
+      strategy: 'ma-cross',
+      mode: 'test',
+      capital: 1000000,
+    });
+    res.json({ success: true, message: 'Discord 알림 테스트 전송 완료' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // 트레이딩 봇 인스턴스 생성
 const bot = new TradingBot({
   market: process.env.BOT_MARKET || 'KRW-BTC',
