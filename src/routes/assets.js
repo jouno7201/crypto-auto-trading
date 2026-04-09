@@ -151,6 +151,52 @@ router.post('/backtest/run', async (req, res) => {
   }
 });
 
+// 워크포워드 검증 실행
+router.post('/backtest/walk-forward', async (req, res) => {
+  try {
+    const {
+      strategy,
+      market = 'KRW-BTC',
+      unit = '60',
+      startDate,
+      endDate,
+      capital = 1000000,
+      windows = 4,
+      trainRatio = 0.7,
+      allowShort = false,
+      useMarketDetector = true,
+      optimizeStrategy = false,
+      metric = 'calmar',
+    } = req.body;
+    if (!strategy) return res.status(400).json({ error: '전략을 선택하세요' });
+    if (!startDate || !endDate) return res.status(400).json({ error: '시작일/종료일을 입력하세요' });
+
+    const { createStrategy } = require('../strategies');
+    const { fetchUpbitCandlesByRange } = require('../engine/dataCollector');
+    const { runWalkForward } = require('../engine/walkForward');
+
+    const candles = await fetchUpbitCandlesByRange(market, unit, startDate, endDate);
+
+    const result = runWalkForward(createStrategy, strategy, candles, {
+      windows,
+      trainRatio,
+      initialCapital: capital,
+      allowShort,
+      useMarketDetector,
+      optimizeStrategy,
+      metric,
+    });
+
+    // 결과 저장
+    const filename = `walkforward_${strategy}_${Date.now()}.json`;
+    store.save(`backtest-results/${filename}`, result);
+
+    res.json({ ...result, file: filename });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 백테스트 결과 상세
 router.get('/backtest/:file', (req, res) => {
   const fs = require('fs');

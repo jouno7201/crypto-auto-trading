@@ -437,6 +437,7 @@
     <div class="tabs">
       <div class="tab active" onclick="switchTab('trading')">📈 트레이딩</div>
       <div class="tab" onclick="switchTab('backtest')">🧪 백테스트</div>
+      <div class="tab" onclick="switchTab('walkforward')">🔬 워크포워드</div>
       <div class="tab" onclick="switchTab('reports')">📋 리포트</div>
     </div>
 
@@ -687,6 +688,90 @@
       </div>
     </div>
     <!-- /tab-backtest -->
+
+    <!-- 워크포워드 탭 -->
+    <div id="tab-walkforward" class="tab-content">
+      <div class="bt-container">
+        <div class="bt-form">
+          <label>전략
+            <select id="wfStrategy">
+              <option value="ma-cross">MA Cross</option>
+              <option value="rsi">RSI</option>
+              <option value="bollinger">Bollinger Band</option>
+              <option value="volatility">Volatility Breakout</option>
+              <option value="macd">MACD</option>
+              <option value="triple-ema">Triple EMA</option>
+              <option value="combo">Combo Signal</option>
+            </select>
+          </label>
+          <label>마켓
+            <select id="wfMarket">
+              <option value="KRW-BTC">KRW-BTC</option>
+              <option value="KRW-ETH">KRW-ETH</option>
+              <option value="KRW-XRP">KRW-XRP</option>
+              <option value="KRW-SOL">KRW-SOL</option>
+            </select>
+          </label>
+          <label>캔들 단위
+            <select id="wfUnit">
+              <option value="5">5분</option>
+              <option value="15">15분</option>
+              <option value="60" selected>1시간</option>
+              <option value="240">4시간</option>
+              <option value="day">일봉</option>
+            </select>
+          </label>
+          <label>시작일 <input type="date" id="wfStartDate" /></label>
+          <label>종료일 <input type="date" id="wfEndDate" /></label>
+          <label>초기 자본 (원) <input type="number" id="wfCapital" value="1000000" min="100000" step="100000" /></label>
+          <label>윈도우 수
+            <select id="wfWindows">
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </label>
+          <label>훈련 비율
+            <select id="wfTrainRatio">
+              <option value="0.6">60%</option>
+              <option value="0.7" selected>70%</option>
+              <option value="0.8">80%</option>
+            </select>
+          </label>
+          <label>최적화 지표
+            <select id="wfMetric">
+              <option value="calmar" selected>Calmar (수익/MDD)</option>
+              <option value="sharpe">Sharpe Ratio</option>
+              <option value="return">수익률</option>
+            </select>
+          </label>
+          <label style="flex-direction:row;align-items:center;gap:8px">
+            <input type="checkbox" id="wfAllowShort" style="width:auto" /> 숏(공매도) 허용
+          </label>
+          <label style="flex-direction:row;align-items:center;gap:8px">
+            <input type="checkbox" id="wfMarketDetect" checked style="width:auto" /> 시장감지 필터
+          </label>
+          <label style="flex-direction:row;align-items:center;gap:8px">
+            <input type="checkbox" id="wfOptStrategy" style="width:auto" /> 전략 파라미터도 최적화
+          </label>
+          <button class="btn-run" id="btnWalkForward" onclick="runWalkForward()">🔬 워크포워드 검증 실행</button>
+        </div>
+
+        <!-- 워크포워드 결과 요약 -->
+        <div id="wfSummary" style="display:none"></div>
+
+        <!-- 윈도우 상세 -->
+        <div id="wfWindowDetails" style="display:none"></div>
+
+        <!-- 연쇄 수익 곡선 -->
+        <div id="wfEquityWrap" style="display:none">
+          <h3 style="font-size:13px;color:#8b949e;margin-bottom:8px">📈 OOS 연쇄 수익 곡선</h3>
+          <div id="wfEquityChart"></div>
+        </div>
+      </div>
+    </div>
+    <!-- /tab-walkforward -->
 
     <!-- 리포트 탭 -->
     <div id="tab-reports" class="tab-content">
@@ -1388,6 +1473,147 @@
         } catch (e) {
           alert('리포트 로드 실패: ' + e.message);
         }
+      }
+
+      // ===== 워크포워드 검증 =====
+      let wfChart;
+
+      async function runWalkForward() {
+        const btn = document.getElementById('btnWalkForward');
+        const startDate = document.getElementById('wfStartDate').value;
+        const endDate = document.getElementById('wfEndDate').value;
+        if (!startDate || !endDate) return alert('시작일과 종료일을 선택하세요');
+
+        btn.disabled = true;
+        btn.textContent = '⏳ 최적화 중 (시간이 걸립니다)...';
+
+        try {
+          const body = {
+            strategy: document.getElementById('wfStrategy').value,
+            market: document.getElementById('wfMarket').value,
+            unit: document.getElementById('wfUnit').value,
+            startDate,
+            endDate,
+            capital: parseInt(document.getElementById('wfCapital').value),
+            windows: parseInt(document.getElementById('wfWindows').value),
+            trainRatio: parseFloat(document.getElementById('wfTrainRatio').value),
+            metric: document.getElementById('wfMetric').value,
+            allowShort: document.getElementById('wfAllowShort').checked,
+            useMarketDetector: document.getElementById('wfMarketDetect').checked,
+            optimizeStrategy: document.getElementById('wfOptStrategy').checked,
+          };
+
+          const res = await fetch('/api/assets/backtest/walk-forward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const result = await res.json();
+          if (result.error) throw new Error(result.error);
+
+          showWalkForwardResults(result);
+        } catch (e) {
+          alert('워크포워드 실패: ' + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '🔬 워크포워드 검증 실행';
+        }
+      }
+
+      function showWalkForwardResults(r) {
+        const a = r.analysis;
+        const o = r.oos;
+
+        // 종합 요약 카드
+        const sumEl = document.getElementById('wfSummary');
+        sumEl.style.display = 'block';
+        sumEl.innerHTML = `
+          <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:16px">
+            <h3 style="color:#58a6ff;margin:0 0 12px 0;font-size:15px">🔬 워크포워드 검증 결과 — ${r.strategy}</h3>
+            <div style="background:${a.verdict.includes('✅')?'#0d2818':'#2d1014'};border-radius:6px;padding:12px;margin-bottom:12px;font-size:14px;color:#c9d1d9">
+              <strong>판정:</strong> ${a.verdict}
+            </div>
+            <div class="bt-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+              ${[{l:'OOS 평균 수익률',v:(o.avgReturn>=0?'+':'')+o.avgReturn+'%',c:o.avgReturn>=0?'positive':'negative'},
+                {l:'OOS 연쇄 수익률',v:(o.totalChainedReturn>=0?'+':'')+o.totalChainedReturn+'%',c:o.totalChainedReturn>=0?'positive':'negative'},
+                {l:'연쇄 후 자산',v:o.chainedFinalCapital.toLocaleString()+'원',c:''},
+                {l:'OOS 평균 MDD',v:'-'+Math.abs(o.avgDrawdown)+'%',c:'negative'},
+                {l:'OOS 최악 MDD',v:o.worstDrawdown+'%',c:'negative'},
+                {l:'OOS 평균 승률',v:o.avgWinRate+'%',c:o.avgWinRate>=50?'positive':'negative'},
+                {l:'OOS 평균 Sharpe',v:o.avgSharpe,c:o.avgSharpe>0?'positive':'negative'},
+                {l:'OOS 평균 PF',v:o.avgProfitFactor,c:o.avgProfitFactor>1?'positive':'negative'},
+                {l:'OOS 총 거래수',v:o.totalTrades+'회',c:''},
+                {l:'견고성 비율',v:a.robustnessRatio+'%',c:a.robustnessRatio>=70?'positive':'negative'},
+                {l:'일관성 (양수 OOS)',v:a.consistencyRatio+'%',c:a.consistencyRatio>=75?'positive':'negative'},
+                {l:'IS→OOS 감소',v:a.returnDegradation.toFixed(2)+'%p',c:'negative'},
+                {l:'IS 평균 수익률',v:(a.isAvgReturn>=0?'+':'')+a.isAvgReturn+'%',c:''},
+                {l:'윈도우 수',v:r.windows+'개',c:''},
+                {l:'조합/윈도우',v:r.totalCombosPerWindow+'개',c:''},
+              ].map(c=>`<div class="card"><div class="card-label">${c.l}</div><div class="card-value ${c.c}" style="font-size:16px">${c.v}</div></div>`).join('')}
+            </div>
+          </div>`;
+
+        // 윈도우 상세
+        const detEl = document.getElementById('wfWindowDetails');
+        detEl.style.display = 'block';
+        detEl.innerHTML = `
+          <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:16px">
+            <h3 style="color:#8b949e;font-size:14px;margin:0 0 12px 0">📊 윈도우별 상세</h3>
+            <div style="overflow-x:auto">
+              <table style="width:100%;font-size:12px;border-collapse:collapse;color:#c9d1d9">
+                <thead><tr style="color:#8b949e;border-bottom:1px solid #30363d">
+                  <th style="padding:6px;text-align:left">윈도우</th>
+                  <th style="padding:6px">훈련 기간</th>
+                  <th style="padding:6px">IS 수익률</th>
+                  <th style="padding:6px">IS 승률</th>
+                  <th style="padding:6px">검증 기간</th>
+                  <th style="padding:6px">OOS 수익률</th>
+                  <th style="padding:6px">OOS MDD</th>
+                  <th style="padding:6px">OOS 승률</th>
+                  <th style="padding:6px">OOS PF</th>
+                  <th style="padding:6px">거래수</th>
+                  <th style="padding:6px">최적 SL/TP/TS</th>
+                </tr></thead>
+                <tbody>
+                  ${r.windowDetails.map(w=>{
+                    const e = w.bestParams.engine;
+                    const ts = s => s ? new Date(s).toLocaleDateString('ko') : '-';
+                    return `<tr style="border-bottom:1px solid #21262d">
+                      <td style="padding:6px;text-align:center">#${w.window}</td>
+                      <td style="padding:6px;text-align:center;font-size:11px">${ts(w.period.train.start)}~${ts(w.period.train.end)}</td>
+                      <td style="padding:6px;text-align:center;color:${w.train.totalReturn>=0?'#3fb950':'#f85149'}">${w.train.totalReturn>=0?'+':''}${w.train.totalReturn}%</td>
+                      <td style="padding:6px;text-align:center">${w.train.winRate}%</td>
+                      <td style="padding:6px;text-align:center;font-size:11px">${ts(w.period.test.start)}~${ts(w.period.test.end)}</td>
+                      <td style="padding:6px;text-align:center;font-weight:bold;color:${w.test.totalReturn>=0?'#3fb950':'#f85149'}">${w.test.totalReturn>=0?'+':''}${w.test.totalReturn}%</td>
+                      <td style="padding:6px;text-align:center;color:#f85149">-${Math.abs(w.test.maxDrawdown)}%</td>
+                      <td style="padding:6px;text-align:center">${w.test.winRate}%</td>
+                      <td style="padding:6px;text-align:center">${w.test.profitFactor}</td>
+                      <td style="padding:6px;text-align:center">${w.test.trades}</td>
+                      <td style="padding:6px;text-align:center;font-size:11px">${e.stopLossATR||'-'}/${e.takeProfitATR||'-'}/${e.trailingStopATR||'-'}</td>
+                    </tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>`;
+
+        // OOS 연쇄 수익 곡선
+        const eqWrap = document.getElementById('wfEquityWrap');
+        eqWrap.style.display = 'block';
+        if (wfChart) wfChart.remove();
+        const container = document.getElementById('wfEquityChart');
+        wfChart = LightweightCharts.createChart(container, {
+          width: container.clientWidth || 700,
+          height: 300,
+          layout: { background: { color: '#161b22' }, textColor: '#8b949e' },
+          grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+          rightPriceScale: { borderColor: '#30363d' },
+        });
+        const lineSeries = wfChart.addLineSeries({ color: '#58a6ff', lineWidth: 3 });
+        const eqData = [{time:0, value:r.initialCapital}];
+        r.chainedEquity.forEach((ce,i) => eqData.push({time:i+1, value: Math.round(ce.end)}));
+        lineSeries.setData(eqData.map((d,i)=>({time:i,value:d.value})));
+        wfChart.timeScale().fitContent();
       }
     </script>
   </body>

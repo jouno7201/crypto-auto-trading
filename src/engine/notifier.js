@@ -66,20 +66,22 @@ function sendWebhook(payload) {
  */
 function notifyBuy({ market, price, amount, reason, strategy, stopLoss, takeProfit }) {
   return sendWebhook({
-    embeds: [{
-      title: '🟢 매수 체결',
-      color: 0x00d26a,
-      fields: [
-        { name: '마켓', value: market, inline: true },
-        { name: '전략', value: strategy || '-', inline: true },
-        { name: '사유', value: reason || '-', inline: false },
-        { name: '매수가', value: `${Number(price).toLocaleString()}원`, inline: true },
-        { name: '투자금', value: `${Number(amount).toLocaleString()}원`, inline: true },
-        ...(stopLoss ? [{ name: '손절가', value: `${Number(stopLoss).toLocaleString()}원`, inline: true }] : []),
-        ...(takeProfit ? [{ name: '익절가', value: `${Number(takeProfit).toLocaleString()}원`, inline: true }] : []),
-      ],
-      timestamp: new Date().toISOString(),
-    }],
+    embeds: [
+      {
+        title: '🟢 매수 체결',
+        color: 0x00d26a,
+        fields: [
+          { name: '마켓', value: market, inline: true },
+          { name: '전략', value: strategy || '-', inline: true },
+          { name: '사유', value: reason || '-', inline: false },
+          { name: '매수가', value: `${Number(price).toLocaleString()}원`, inline: true },
+          { name: '투자금', value: `${Number(amount).toLocaleString()}원`, inline: true },
+          ...(stopLoss ? [{ name: '손절가', value: `${Number(stopLoss).toLocaleString()}원`, inline: true }] : []),
+          ...(takeProfit ? [{ name: '익절가', value: `${Number(takeProfit).toLocaleString()}원`, inline: true }] : []),
+        ],
+        timestamp: new Date().toISOString(),
+      },
+    ],
   });
 }
 
@@ -89,19 +91,25 @@ function notifyBuy({ market, price, amount, reason, strategy, stopLoss, takeProf
 function notifySell({ market, entryPrice, exitPrice, pnl, pnlPercent, reason, strategy }) {
   const isProfit = pnl >= 0;
   return sendWebhook({
-    embeds: [{
-      title: isProfit ? '📈 매도 체결 (수익)' : '📉 매도 체결 (손실)',
-      color: isProfit ? 0x00d26a : 0xf93a37,
-      fields: [
-        { name: '마켓', value: market, inline: true },
-        { name: '전략', value: strategy || '-', inline: true },
-        { name: '사유', value: reason || '-', inline: false },
-        { name: '진입가', value: `${Number(entryPrice).toLocaleString()}원`, inline: true },
-        { name: '청산가', value: `${Number(exitPrice).toLocaleString()}원`, inline: true },
-        { name: '손익', value: `${isProfit ? '+' : ''}${Number(pnl).toLocaleString()}원 (${pnlPercent}%)`, inline: true },
-      ],
-      timestamp: new Date().toISOString(),
-    }],
+    embeds: [
+      {
+        title: isProfit ? '📈 매도 체결 (수익)' : '📉 매도 체결 (손실)',
+        color: isProfit ? 0x00d26a : 0xf93a37,
+        fields: [
+          { name: '마켓', value: market, inline: true },
+          { name: '전략', value: strategy || '-', inline: true },
+          { name: '사유', value: reason || '-', inline: false },
+          { name: '진입가', value: `${Number(entryPrice).toLocaleString()}원`, inline: true },
+          { name: '청산가', value: `${Number(exitPrice).toLocaleString()}원`, inline: true },
+          {
+            name: '손익',
+            value: `${isProfit ? '+' : ''}${Number(pnl).toLocaleString()}원 (${pnlPercent}%)`,
+            inline: true,
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      },
+    ],
   });
 }
 
@@ -110,17 +118,19 @@ function notifySell({ market, entryPrice, exitPrice, pnl, pnlPercent, reason, st
  */
 function notifyBotStart({ market, strategy, mode, capital }) {
   return sendWebhook({
-    embeds: [{
-      title: '🤖 트레이딩 봇 시작',
-      color: 0x5865f2,
-      fields: [
-        { name: '마켓', value: market, inline: true },
-        { name: '전략', value: strategy, inline: true },
-        { name: '모드', value: mode.toUpperCase(), inline: true },
-        { name: '자본', value: `${Number(capital).toLocaleString()}원`, inline: true },
-      ],
-      timestamp: new Date().toISOString(),
-    }],
+    embeds: [
+      {
+        title: '🤖 트레이딩 봇 시작',
+        color: 0x5865f2,
+        fields: [
+          { name: '마켓', value: market, inline: true },
+          { name: '전략', value: strategy, inline: true },
+          { name: '모드', value: mode.toUpperCase(), inline: true },
+          { name: '자본', value: `${Number(capital).toLocaleString()}원`, inline: true },
+        ],
+        timestamp: new Date().toISOString(),
+      },
+    ],
   });
 }
 
@@ -129,16 +139,18 @@ function notifyBotStart({ market, strategy, mode, capital }) {
  */
 function notifyBotStop({ market, capital, tradeCount }) {
   return sendWebhook({
-    embeds: [{
-      title: '⏹️ 트레이딩 봇 정지',
-      color: 0x99aab5,
-      fields: [
-        { name: '마켓', value: market, inline: true },
-        { name: '잔액', value: `${Number(capital).toLocaleString()}원`, inline: true },
-        { name: '거래수', value: `${tradeCount}회`, inline: true },
-      ],
-      timestamp: new Date().toISOString(),
-    }],
+    embeds: [
+      {
+        title: '⏹️ 트레이딩 봇 정지',
+        color: 0x99aab5,
+        fields: [
+          { name: '마켓', value: market, inline: true },
+          { name: '잔액', value: `${Number(capital).toLocaleString()}원`, inline: true },
+          { name: '거래수', value: `${tradeCount}회`, inline: true },
+        ],
+        timestamp: new Date().toISOString(),
+      },
+    ],
   });
 }
 
@@ -147,15 +159,17 @@ function notifyBotStop({ market, capital, tradeCount }) {
  */
 function notifyError({ context, message }) {
   return sendWebhook({
-    embeds: [{
-      title: '🚨 에러 발생',
-      color: 0xf93a37,
-      fields: [
-        { name: '위치', value: context || 'unknown', inline: true },
-        { name: '내용', value: message.slice(0, 1000), inline: false },
-      ],
-      timestamp: new Date().toISOString(),
-    }],
+    embeds: [
+      {
+        title: '🚨 에러 발생',
+        color: 0xf93a37,
+        fields: [
+          { name: '위치', value: context || 'unknown', inline: true },
+          { name: '내용', value: message.slice(0, 1000), inline: false },
+        ],
+        timestamp: new Date().toISOString(),
+      },
+    ],
   });
 }
 
@@ -163,24 +177,26 @@ function notifyError({ context, message }) {
  * 일일 리포트 알림
  */
 function notifyDailyReport({ market, capital, initialCapital, todayPnl, todayTrades, position }) {
-  const totalReturn = ((capital - initialCapital) / initialCapital * 100).toFixed(2);
+  const totalReturn = (((capital - initialCapital) / initialCapital) * 100).toFixed(2);
   const todayReturn = todayPnl != null ? `${todayPnl >= 0 ? '+' : ''}${Number(todayPnl).toLocaleString()}원` : '-';
   const posStatus = position ? `보유 (진입: ${Number(position.entryPrice).toLocaleString()}원)` : '미보유';
 
   return sendWebhook({
-    embeds: [{
-      title: '📊 일일 리포트',
-      color: 0x5865f2,
-      fields: [
-        { name: '마켓', value: market, inline: true },
-        { name: '포지션', value: posStatus, inline: true },
-        { name: '오늘 거래', value: `${todayTrades || 0}회`, inline: true },
-        { name: '오늘 손익', value: todayReturn, inline: true },
-        { name: '총 자산', value: `${Number(capital).toLocaleString()}원`, inline: true },
-        { name: '총 수익률', value: `${totalReturn}%`, inline: true },
-      ],
-      timestamp: new Date().toISOString(),
-    }],
+    embeds: [
+      {
+        title: '📊 일일 리포트',
+        color: 0x5865f2,
+        fields: [
+          { name: '마켓', value: market, inline: true },
+          { name: '포지션', value: posStatus, inline: true },
+          { name: '오늘 거래', value: `${todayTrades || 0}회`, inline: true },
+          { name: '오늘 손익', value: todayReturn, inline: true },
+          { name: '총 자산', value: `${Number(capital).toLocaleString()}원`, inline: true },
+          { name: '총 수익률', value: `${totalReturn}%`, inline: true },
+        ],
+        timestamp: new Date().toISOString(),
+      },
+    ],
   });
 }
 

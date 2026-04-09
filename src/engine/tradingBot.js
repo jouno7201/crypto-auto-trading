@@ -88,7 +88,10 @@ class TradingBot {
     }
     console.log('\n[봇] 트레이딩 봇 정지');
     this._saveState();
-    if (this._dailyTimer) { clearTimeout(this._dailyTimer); this._dailyTimer = null; }
+    if (this._dailyTimer) {
+      clearTimeout(this._dailyTimer);
+      this._dailyTimer = null;
+    }
     notify.notifyBotStop({
       market: this.config.market,
       capital: this.capital,
