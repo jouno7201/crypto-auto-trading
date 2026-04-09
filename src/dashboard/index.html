@@ -693,7 +693,8 @@
     <div id="tab-walkforward" class="tab-content">
       <div class="bt-container">
         <div class="bt-form">
-          <label>전략
+          <label
+            >전략
             <select id="wfStrategy">
               <option value="ma-cross">MA Cross</option>
               <option value="rsi">RSI</option>
@@ -704,7 +705,8 @@
               <option value="combo">Combo Signal</option>
             </select>
           </label>
-          <label>마켓
+          <label
+            >마켓
             <select id="wfMarket">
               <option value="KRW-BTC">KRW-BTC</option>
               <option value="KRW-ETH">KRW-ETH</option>
@@ -712,7 +714,8 @@
               <option value="KRW-SOL">KRW-SOL</option>
             </select>
           </label>
-          <label>캔들 단위
+          <label
+            >캔들 단위
             <select id="wfUnit">
               <option value="5">5분</option>
               <option value="15">15분</option>
@@ -723,8 +726,11 @@
           </label>
           <label>시작일 <input type="date" id="wfStartDate" /></label>
           <label>종료일 <input type="date" id="wfEndDate" /></label>
-          <label>초기 자본 (원) <input type="number" id="wfCapital" value="1000000" min="100000" step="100000" /></label>
-          <label>윈도우 수
+          <label
+            >초기 자본 (원) <input type="number" id="wfCapital" value="1000000" min="100000" step="100000"
+          /></label>
+          <label
+            >윈도우 수
             <select id="wfWindows">
               <option value="3">3</option>
               <option value="4" selected>4</option>
@@ -732,41 +738,43 @@
               <option value="6">6</option>
             </select>
           </label>
-          <label>훈련 비율
+          <label
+            >훈련 비율
             <select id="wfTrainRatio">
               <option value="0.6">60%</option>
               <option value="0.7" selected>70%</option>
               <option value="0.8">80%</option>
             </select>
           </label>
-          <label>최적화 지표
+          <label
+            >최적화 지표
             <select id="wfMetric">
               <option value="calmar" selected>Calmar (수익/MDD)</option>
               <option value="sharpe">Sharpe Ratio</option>
               <option value="return">수익률</option>
             </select>
           </label>
-          <label style="flex-direction:row;align-items:center;gap:8px">
-            <input type="checkbox" id="wfAllowShort" style="width:auto" /> 숏(공매도) 허용
+          <label style="flex-direction: row; align-items: center; gap: 8px">
+            <input type="checkbox" id="wfAllowShort" style="width: auto" /> 숏(공매도) 허용
           </label>
-          <label style="flex-direction:row;align-items:center;gap:8px">
-            <input type="checkbox" id="wfMarketDetect" checked style="width:auto" /> 시장감지 필터
+          <label style="flex-direction: row; align-items: center; gap: 8px">
+            <input type="checkbox" id="wfMarketDetect" checked style="width: auto" /> 시장감지 필터
           </label>
-          <label style="flex-direction:row;align-items:center;gap:8px">
-            <input type="checkbox" id="wfOptStrategy" style="width:auto" /> 전략 파라미터도 최적화
+          <label style="flex-direction: row; align-items: center; gap: 8px">
+            <input type="checkbox" id="wfOptStrategy" style="width: auto" /> 전략 파라미터도 최적화
           </label>
           <button class="btn-run" id="btnWalkForward" onclick="runWalkForward()">🔬 워크포워드 검증 실행</button>
         </div>
 
         <!-- 워크포워드 결과 요약 -->
-        <div id="wfSummary" style="display:none"></div>
+        <div id="wfSummary" style="display: none"></div>
 
         <!-- 윈도우 상세 -->
-        <div id="wfWindowDetails" style="display:none"></div>
+        <div id="wfWindowDetails" style="display: none"></div>
 
         <!-- 연쇄 수익 곡선 -->
-        <div id="wfEquityWrap" style="display:none">
-          <h3 style="font-size:13px;color:#8b949e;margin-bottom:8px">📈 OOS 연쇄 수익 곡선</h3>
+        <div id="wfEquityWrap" style="display: none">
+          <h3 style="font-size: 13px; color: #8b949e; margin-bottom: 8px">📈 OOS 연쇄 수익 곡선</h3>
           <div id="wfEquityChart"></div>
         </div>
       </div>
@@ -1530,26 +1538,44 @@
         sumEl.innerHTML = `
           <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:16px">
             <h3 style="color:#58a6ff;margin:0 0 12px 0;font-size:15px">🔬 워크포워드 검증 결과 — ${r.strategy}</h3>
-            <div style="background:${a.verdict.includes('✅')?'#0d2818':'#2d1014'};border-radius:6px;padding:12px;margin-bottom:12px;font-size:14px;color:#c9d1d9">
+            <div style="background:${a.verdict.includes('✅') ? '#0d2818' : '#2d1014'};border-radius:6px;padding:12px;margin-bottom:12px;font-size:14px;color:#c9d1d9">
               <strong>판정:</strong> ${a.verdict}
             </div>
             <div class="bt-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
-              ${[{l:'OOS 평균 수익률',v:(o.avgReturn>=0?'+':'')+o.avgReturn+'%',c:o.avgReturn>=0?'positive':'negative'},
-                {l:'OOS 연쇄 수익률',v:(o.totalChainedReturn>=0?'+':'')+o.totalChainedReturn+'%',c:o.totalChainedReturn>=0?'positive':'negative'},
-                {l:'연쇄 후 자산',v:o.chainedFinalCapital.toLocaleString()+'원',c:''},
-                {l:'OOS 평균 MDD',v:'-'+Math.abs(o.avgDrawdown)+'%',c:'negative'},
-                {l:'OOS 최악 MDD',v:o.worstDrawdown+'%',c:'negative'},
-                {l:'OOS 평균 승률',v:o.avgWinRate+'%',c:o.avgWinRate>=50?'positive':'negative'},
-                {l:'OOS 평균 Sharpe',v:o.avgSharpe,c:o.avgSharpe>0?'positive':'negative'},
-                {l:'OOS 평균 PF',v:o.avgProfitFactor,c:o.avgProfitFactor>1?'positive':'negative'},
-                {l:'OOS 총 거래수',v:o.totalTrades+'회',c:''},
-                {l:'견고성 비율',v:a.robustnessRatio+'%',c:a.robustnessRatio>=70?'positive':'negative'},
-                {l:'일관성 (양수 OOS)',v:a.consistencyRatio+'%',c:a.consistencyRatio>=75?'positive':'negative'},
-                {l:'IS→OOS 감소',v:a.returnDegradation.toFixed(2)+'%p',c:'negative'},
-                {l:'IS 평균 수익률',v:(a.isAvgReturn>=0?'+':'')+a.isAvgReturn+'%',c:''},
-                {l:'윈도우 수',v:r.windows+'개',c:''},
-                {l:'조합/윈도우',v:r.totalCombosPerWindow+'개',c:''},
-              ].map(c=>`<div class="card"><div class="card-label">${c.l}</div><div class="card-value ${c.c}" style="font-size:16px">${c.v}</div></div>`).join('')}
+              ${[
+                {
+                  l: 'OOS 평균 수익률',
+                  v: (o.avgReturn >= 0 ? '+' : '') + o.avgReturn + '%',
+                  c: o.avgReturn >= 0 ? 'positive' : 'negative',
+                },
+                {
+                  l: 'OOS 연쇄 수익률',
+                  v: (o.totalChainedReturn >= 0 ? '+' : '') + o.totalChainedReturn + '%',
+                  c: o.totalChainedReturn >= 0 ? 'positive' : 'negative',
+                },
+                { l: '연쇄 후 자산', v: o.chainedFinalCapital.toLocaleString() + '원', c: '' },
+                { l: 'OOS 평균 MDD', v: '-' + Math.abs(o.avgDrawdown) + '%', c: 'negative' },
+                { l: 'OOS 최악 MDD', v: o.worstDrawdown + '%', c: 'negative' },
+                { l: 'OOS 평균 승률', v: o.avgWinRate + '%', c: o.avgWinRate >= 50 ? 'positive' : 'negative' },
+                { l: 'OOS 평균 Sharpe', v: o.avgSharpe, c: o.avgSharpe > 0 ? 'positive' : 'negative' },
+                { l: 'OOS 평균 PF', v: o.avgProfitFactor, c: o.avgProfitFactor > 1 ? 'positive' : 'negative' },
+                { l: 'OOS 총 거래수', v: o.totalTrades + '회', c: '' },
+                { l: '견고성 비율', v: a.robustnessRatio + '%', c: a.robustnessRatio >= 70 ? 'positive' : 'negative' },
+                {
+                  l: '일관성 (양수 OOS)',
+                  v: a.consistencyRatio + '%',
+                  c: a.consistencyRatio >= 75 ? 'positive' : 'negative',
+                },
+                { l: 'IS→OOS 감소', v: a.returnDegradation.toFixed(2) + '%p', c: 'negative' },
+                { l: 'IS 평균 수익률', v: (a.isAvgReturn >= 0 ? '+' : '') + a.isAvgReturn + '%', c: '' },
+                { l: '윈도우 수', v: r.windows + '개', c: '' },
+                { l: '조합/윈도우', v: r.totalCombosPerWindow + '개', c: '' },
+              ]
+                .map(
+                  (c) =>
+                    `<div class="card"><div class="card-label">${c.l}</div><div class="card-value ${c.c}" style="font-size:16px">${c.v}</div></div>`,
+                )
+                .join('')}
             </div>
           </div>`;
 
@@ -1575,23 +1601,25 @@
                   <th style="padding:6px">최적 SL/TP/TS</th>
                 </tr></thead>
                 <tbody>
-                  ${r.windowDetails.map(w=>{
-                    const e = w.bestParams.engine;
-                    const ts = s => s ? new Date(s).toLocaleDateString('ko') : '-';
-                    return `<tr style="border-bottom:1px solid #21262d">
+                  ${r.windowDetails
+                    .map((w) => {
+                      const e = w.bestParams.engine;
+                      const ts = (s) => (s ? new Date(s).toLocaleDateString('ko') : '-');
+                      return `<tr style="border-bottom:1px solid #21262d">
                       <td style="padding:6px;text-align:center">#${w.window}</td>
                       <td style="padding:6px;text-align:center;font-size:11px">${ts(w.period.train.start)}~${ts(w.period.train.end)}</td>
-                      <td style="padding:6px;text-align:center;color:${w.train.totalReturn>=0?'#3fb950':'#f85149'}">${w.train.totalReturn>=0?'+':''}${w.train.totalReturn}%</td>
+                      <td style="padding:6px;text-align:center;color:${w.train.totalReturn >= 0 ? '#3fb950' : '#f85149'}">${w.train.totalReturn >= 0 ? '+' : ''}${w.train.totalReturn}%</td>
                       <td style="padding:6px;text-align:center">${w.train.winRate}%</td>
                       <td style="padding:6px;text-align:center;font-size:11px">${ts(w.period.test.start)}~${ts(w.period.test.end)}</td>
-                      <td style="padding:6px;text-align:center;font-weight:bold;color:${w.test.totalReturn>=0?'#3fb950':'#f85149'}">${w.test.totalReturn>=0?'+':''}${w.test.totalReturn}%</td>
+                      <td style="padding:6px;text-align:center;font-weight:bold;color:${w.test.totalReturn >= 0 ? '#3fb950' : '#f85149'}">${w.test.totalReturn >= 0 ? '+' : ''}${w.test.totalReturn}%</td>
                       <td style="padding:6px;text-align:center;color:#f85149">-${Math.abs(w.test.maxDrawdown)}%</td>
                       <td style="padding:6px;text-align:center">${w.test.winRate}%</td>
                       <td style="padding:6px;text-align:center">${w.test.profitFactor}</td>
                       <td style="padding:6px;text-align:center">${w.test.trades}</td>
-                      <td style="padding:6px;text-align:center;font-size:11px">${e.stopLossATR||'-'}/${e.takeProfitATR||'-'}/${e.trailingStopATR||'-'}</td>
+                      <td style="padding:6px;text-align:center;font-size:11px">${e.stopLossATR || '-'}/${e.takeProfitATR || '-'}/${e.trailingStopATR || '-'}</td>
                     </tr>`;
-                  }).join('')}
+                    })
+                    .join('')}
                 </tbody>
               </table>
             </div>
@@ -1610,9 +1638,9 @@
           rightPriceScale: { borderColor: '#30363d' },
         });
         const lineSeries = wfChart.addLineSeries({ color: '#58a6ff', lineWidth: 3 });
-        const eqData = [{time:0, value:r.initialCapital}];
-        r.chainedEquity.forEach((ce,i) => eqData.push({time:i+1, value: Math.round(ce.end)}));
-        lineSeries.setData(eqData.map((d,i)=>({time:i,value:d.value})));
+        const eqData = [{ time: 0, value: r.initialCapital }];
+        r.chainedEquity.forEach((ce, i) => eqData.push({ time: i + 1, value: Math.round(ce.end) }));
+        lineSeries.setData(eqData.map((d, i) => ({ time: i, value: d.value })));
         wfChart.timeScale().fitContent();
       }
     </script>

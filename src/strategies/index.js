@@ -10,6 +10,8 @@ const VolatilityBreakout = require('./VolatilityBreakout');
 const MACDStrategy = require('./MACDStrategy');
 const TripleEMA = require('./TripleEMA');
 const ComboSignal = require('./ComboSignal');
+const MeanReversion = require('./MeanReversion');
+const AdaptiveMomentum = require('./AdaptiveMomentum');
 
 // 전략 이름 → 클래스 매핑 (별칭 포함)
 const STRATEGIES = {
@@ -23,6 +25,8 @@ const STRATEGIES = {
   'triple-ema': TripleEMA,
   combo: ComboSignal,
   'combo-signal': ComboSignal,
+  'mean-reversion': MeanReversion,
+  'adaptive-momentum': AdaptiveMomentum,
 };
 
 /**
@@ -43,6 +47,8 @@ module.exports = {
   MACDStrategy,
   TripleEMA,
   ComboSignal,
+  MeanReversion,
+  AdaptiveMomentum,
   STRATEGIES,
   createStrategy,
 };

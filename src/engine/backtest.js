@@ -23,14 +23,16 @@ function runBacktest(strategy, candles, options = {}) {
   const {
     initialCapital = 1_000_000,
     feeRate = 0.0005,
-    slippage = 0.001,
+    slippage = 0.0003, // 업비트 BTC/KRW 실제 슬리피지 (0.03%)
     riskPerTrade = 0.3, // 1회 투자 비율 (30%)
     // 손절/익절
     stopLossATR = 2.0, // ATR × N 손절 (0 = 비활성)
     takeProfitATR = 3.0, // ATR × N 익절 (0 = 비활성)
     trailingStopATR = 2.5, // 고점 대비 ATR × N 트레일링 (0 = 비활성)
     // 쿨다운
-    cooldownBars = 3, // 손절 후 재진입 금지 봉수
+    cooldownBars = 2, // 손절 후 재진입 금지 봉수
+    // 최소 보유 기간 (SL/TP 유예)
+    minHoldBars = 0, // 진입 후 N봉 동안 SL/TP 미적용 (0 = 즉시 적용)
     // 연속 손실 제한
     maxConsecutiveLoss = 5, // 연속 N패 후 거래 정지 (0 = 무제한)
     // 숏 허용
@@ -50,6 +52,7 @@ function runBacktest(strategy, candles, options = {}) {
   let consecutiveLosses = 0;
   let positionSide = null; // 'long' | 'short' | null
   let entryTime = null;
+  let entryBarIndex = 0; // 진입 봉 인덱스 (최소보유기간 체크)
   let shortMargin = 0; // 숏 진입 시 투입액 (증거금)
 
   const trades = [];
@@ -190,8 +193,11 @@ function runBacktest(strategy, candles, options = {}) {
     if (positionSide === 'long' && position > 0) {
       if (currCandle.high > peakSinceEntry) peakSinceEntry = currCandle.high;
 
+      const holdBars = i - entryBarIndex;
+      const canExit = holdBars >= minHoldBars;
+
       // 1) 손절: 현재가 < 진입가 - ATR*N (시장상태 반영)
-      if (dynSL > 0 && currATR > 0) {
+      if (canExit && dynSL > 0 && currATR > 0) {
         const slPrice = entryPrice - currATR * dynSL;
         if (currCandle.low <= slPrice) {
           closeLong(i, slPrice, '손절(ATR-SL)');
@@ -201,7 +207,7 @@ function runBacktest(strategy, candles, options = {}) {
       }
 
       // 2) 익절: 현재가 > 진입가 + ATR*N (시장상태 반영)
-      if (dynTP > 0 && currATR > 0) {
+      if (canExit && dynTP > 0 && currATR > 0) {
         const tpPrice = entryPrice + currATR * dynTP;
         if (currCandle.high >= tpPrice) {
           closeLong(i, tpPrice, '익절(ATR-TP)');
@@ -211,7 +217,7 @@ function runBacktest(strategy, candles, options = {}) {
       }
 
       // 3) 트레일링 스탑: 고점 - ATR*N (시장상태 반영)
-      if (dynTS > 0 && currATR > 0 && peakSinceEntry > 0) {
+      if (canExit && dynTS > 0 && currATR > 0 && peakSinceEntry > 0) {
         const tsPrice = peakSinceEntry - currATR * dynTS;
         if (tsPrice > entryPrice && currCandle.low <= tsPrice) {
           closeLong(i, tsPrice, '트레일링스탑');
@@ -232,8 +238,11 @@ function runBacktest(strategy, candles, options = {}) {
     if (positionSide === 'short' && position < 0) {
       if (currCandle.low < troughSinceEntry) troughSinceEntry = currCandle.low;
 
+      const holdBars = i - entryBarIndex;
+      const canExit = holdBars >= minHoldBars;
+
       // 1) 손절: 현재가 > 진입가 + ATR*N (시장상태 반영)
-      if (dynSL > 0 && currATR > 0) {
+      if (canExit && dynSL > 0 && currATR > 0) {
         const slPrice = entryPrice + currATR * dynSL;
         if (currCandle.high >= slPrice) {
           closeShort(i, slPrice, '손절(ATR-SL)');
@@ -243,7 +252,7 @@ function runBacktest(strategy, candles, options = {}) {
       }
 
       // 2) 익절: 현재가 < 진입가 - ATR*N (시장상태 반영)
-      if (dynTP > 0 && currATR > 0) {
+      if (canExit && dynTP > 0 && currATR > 0) {
         const tpPrice = entryPrice - currATR * dynTP;
         if (currCandle.low <= tpPrice) {
           closeShort(i, tpPrice, '익절(ATR-TP)');
@@ -253,7 +262,7 @@ function runBacktest(strategy, candles, options = {}) {
       }
 
       // 3) 트레일링 스탑: 저점 + ATR*N (시장상태 반영)
-      if (dynTS > 0 && currATR > 0 && troughSinceEntry < Infinity) {
+      if (canExit && dynTS > 0 && currATR > 0 && troughSinceEntry < Infinity) {
         const tsPrice = troughSinceEntry + currATR * dynTS;
         if (tsPrice < entryPrice && currCandle.high >= tsPrice) {
           closeShort(i, tsPrice, '트레일링스탑');
@@ -305,6 +314,7 @@ function runBacktest(strategy, candles, options = {}) {
       positionSide = 'long';
       peakSinceEntry = currCandle.high;
       entryTime = currCandle.timestamp;
+      entryBarIndex = i;
     }
 
     // 숏 진입
@@ -320,6 +330,7 @@ function runBacktest(strategy, candles, options = {}) {
       positionSide = 'short';
       troughSinceEntry = currCandle.low;
       entryTime = currCandle.timestamp;
+      entryBarIndex = i;
     }
 
     trackEquity(i, currPrice);

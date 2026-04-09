@@ -1,8 +1,9 @@
 /**
- * 볼린저 밴드 전략 (개선판)
- * - 밴드 스퀴즈(수축) 후 돌파 감지 → 추세 진입
- * - %B 지표로 정밀한 진입/청산
- * - RSI 보조 필터로 잘못된 시그널 제거
+ * 볼린저 밴드 전략 (v3)
+ * - 스퀴즈 브레이크아웃 (핵심 신호)
+ * - BB 밴드 터치 반전 (평균 회귀)
+ * - %B 기반 추세 확인
+ * - 신호 강도 보정 (market detector 통과)
  */
 
 const BaseStrategy = require('./BaseStrategy');
@@ -26,25 +27,28 @@ class BollingerBand extends BaseStrategy {
     const bb = bollingerBands(closes, period, multiplier);
     const rsiValues = rsi(closes, rsiPeriod);
 
-    if (bb.upper.length < squeezeLookback + 2 || rsiValues.length < 2) {
+    if (bb.upper.length < squeezeLookback + 2 || rsiValues.length < 3) {
       return { action: 'hold', reason: '데이터 부족', strength: 0 };
     }
 
     const len = bb.upper.length;
-    const prevClose = closes[closes.length - 2];
-    const currClose = closes[closes.length - 1];
-    const currLower = bb.lower[len - 1];
+    const currPrice = closes[closes.length - 1];
+    const prevPrice = closes[closes.length - 2];
     const currUpper = bb.upper[len - 1];
+    const currLower = bb.lower[len - 1];
     const currMiddle = bb.middle[len - 1];
-    const prevLower = bb.lower[len - 2];
     const prevUpper = bb.upper[len - 2];
+    const prevLower = bb.lower[len - 2];
+    const prevMiddle = bb.middle[len - 2];
+
     const currRSI = rsiValues[rsiValues.length - 1];
     const prevRSI = rsiValues[rsiValues.length - 2];
 
-    // %B 계산: 0이면 하단, 1이면 상단, 0.5이면 중앙
-    const percentB = currUpper === currLower ? 0.5 : (currClose - currLower) / (currUpper - currLower);
-    const prevPercentB =
-      prevUpper === prevLower ? 0.5 : (prevClose - bb.lower[len - 2]) / (prevUpper - bb.lower[len - 2]);
+    // %B 계산
+    const bbWidth = currUpper - currLower;
+    const percentB = bbWidth > 0 ? (currPrice - currLower) / bbWidth : 0.5;
+    const prevBbWidth = prevUpper - prevLower;
+    const prevPercentB = prevBbWidth > 0 ? (prevPrice - prevLower) / prevBbWidth : 0.5;
 
     // 밴드폭 계산 (현재 & 최근)
     const bandwidths = [];
@@ -54,66 +58,67 @@ class BollingerBand extends BaseStrategy {
     const currBW = bandwidths[bandwidths.length - 1];
     const avgBW = bandwidths.reduce((a, b) => a + b, 0) / bandwidths.length;
     const isSqueeze = currBW < avgBW * 0.75;
+    const isExpanding = currBW > avgBW * 1.1;
 
-    // 1) 스퀴즈 후 상단 돌파 (RSI 제약 완화: 35~80)
-    if (isSqueeze && currClose > currUpper && currRSI > 35 && currRSI < 80) {
-      return {
-        action: 'buy',
-        reason: `볼린저 스퀴즈 돌파 (%B:${percentB.toFixed(2)}, RSI:${currRSI.toFixed(0)})`,
-        strength: 0.9,
-      };
+    // ========== 매수 ==========
+
+    // 1) 스퀴즈 후 상방 브레이크아웃 (가장 강력)
+    if (isSqueeze && currPrice > currUpper && prevPrice <= prevUpper) {
+      return { action: 'buy', reason: `스퀴즈 상방돌파 (%B:${percentB.toFixed(2)})`, strength: 0.9 };
     }
 
-    // 1-b) 스퀴즈 없어도 상단 돌파 + 강한 모멘텀
-    if (!isSqueeze && currClose > currUpper && prevClose <= prevUpper && currRSI > 50 && currRSI < 75) {
-      return {
-        action: 'buy',
-        reason: `볼린저 상단 돌파 (%B:${percentB.toFixed(2)}, RSI:${currRSI.toFixed(0)})`,
-        strength: 0.75,
-      };
+    // 2) 하단 밴드 터치 후 반등
+    if (prevPrice <= prevLower && currPrice > currLower && currPrice > prevPrice) {
+      if (currRSI < 45 && currRSI > prevRSI) {
+        const strength = Math.min(0.7 + (1 - percentB) * 0.2, 0.9);
+        return { action: 'buy', reason: `하단밴드 반등 (%B:${percentB.toFixed(2)})`, strength };
+      }
     }
 
-    // 2) 하단 밴드 터치 후 반등 (%B 0.05 이하에서 상승)
-    if (prevClose <= prevLower && currClose > currLower && currRSI > 25) {
-      const strength = Math.min(0.3 + ((currMiddle - currClose) / (currMiddle - currLower)) * 0.5, 0.85);
-      return { action: 'buy', reason: `볼린저 하단 반등 (%B:${percentB.toFixed(2)})`, strength };
+    // 3) %B 0.15 이하에서 반등 시작
+    if (prevPercentB < 0.15 && percentB > prevPercentB && percentB < 0.35) {
+      if (currRSI > prevRSI && currPrice > prevPrice) {
+        return { action: 'buy', reason: `%B 반등 (${prevPercentB.toFixed(2)}→${percentB.toFixed(2)})`, strength: 0.7 };
+      }
     }
 
-    // 2-b) %B가 0.2 이하에서 반등 (하단 근접 매수)
-    if (percentB < 0.2 && percentB > prevPercentB && currRSI > 30 && currRSI < 50) {
-      return {
-        action: 'buy',
-        reason: `볼린저 %B 반등 (%B:${percentB.toFixed(2)}, RSI:${currRSI.toFixed(0)})`,
-        strength: 0.65,
-      };
+    // 4) 중심선 상향 돌파 + 밴드 확장
+    if (prevPrice < prevMiddle && currPrice >= currMiddle && isExpanding) {
+      if (currRSI > 45 && currRSI < 65) {
+        return { action: 'buy', reason: `중심선 돌파+확장 (%B:${percentB.toFixed(2)})`, strength: 0.65 };
+      }
     }
 
-    // 3) %B가 0.8 이상에서 꺾이기 시작 + RSI 과매수 영역
-    if (prevPercentB > 0.8 && percentB < prevPercentB && currRSI > 55) {
-      const strength = Math.min(0.3 + (percentB - 0.5) * 1.5, 0.85);
-      return {
-        action: 'sell',
-        reason: `볼린저 상단 반락 (%B:${percentB.toFixed(2)}, RSI:${currRSI.toFixed(0)})`,
-        strength,
-      };
+    // ========== 매도 ==========
+
+    // 5) 스퀴즈 후 하방 이탈
+    if (isSqueeze && currPrice < currLower && prevPrice >= prevLower) {
+      return { action: 'sell', reason: `스퀴즈 하방이탈 (%B:${percentB.toFixed(2)})`, strength: 0.9 };
     }
 
-    // 4) 상단 밴드 터치 후 하향 + RSI 과매수
-    if (prevClose >= prevUpper && currClose < currUpper && currRSI > 55) {
-      const strength = Math.min(0.3 + ((currClose - currMiddle) / (currUpper - currMiddle)) * 0.5, 0.85);
-      return { action: 'sell', reason: `볼린저 상단밴드 반락`, strength };
+    // 6) 상단 밴드 터치 후 반락
+    if (prevPrice >= prevUpper && currPrice < currUpper && currPrice < prevPrice) {
+      if (currRSI > 55 && currRSI < prevRSI) {
+        const strength = Math.min(0.7 + percentB * 0.2, 0.9);
+        return { action: 'sell', reason: `상단밴드 반락 (%B:${percentB.toFixed(2)})`, strength };
+      }
     }
 
-    // 5) %B가 0.5 위에서 아래로 하락 + RSI 하락 + 밴드 확장 → 하락 추세 전환
-    if (prevPercentB > 0.5 && percentB < 0.5 && currRSI < prevRSI && currBW > avgBW) {
-      return {
-        action: 'sell',
-        reason: `볼린저 중심선 이탈 (%B:${percentB.toFixed(2)}, RSI:${currRSI.toFixed(0)})`,
-        strength: 0.6,
-      };
+    // 7) %B 0.85 이상에서 하락 시작
+    if (prevPercentB > 0.85 && percentB < prevPercentB && percentB > 0.65) {
+      if (currRSI < prevRSI && currPrice < prevPrice) {
+        return { action: 'sell', reason: `%B 반락 (${prevPercentB.toFixed(2)}→${percentB.toFixed(2)})`, strength: 0.7 };
+      }
     }
 
-    return { action: 'hold', reason: `볼린저 중립 (%B:${percentB.toFixed(2)})`, strength: 0 };
+    // 8) 중심선 하향 이탈 + 밴드 확장
+    if (prevPrice > prevMiddle && currPrice <= currMiddle && isExpanding) {
+      if (currRSI < 55 && currRSI > 35) {
+        return { action: 'sell', reason: `중심선 이탈+확장 (%B:${percentB.toFixed(2)})`, strength: 0.65 };
+      }
+    }
+
+    return { action: 'hold', reason: `BB 중립 (%B:${percentB.toFixed(2)})`, strength: 0 };
   }
 }
 

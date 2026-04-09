@@ -35,10 +35,11 @@ function generateGrid(grid) {
  * 기본 최적화 그리드 (엔진 파라미터)
  */
 const DEFAULT_ENGINE_GRID = {
-  stopLossATR: [1.5, 2.0, 2.5],
-  takeProfitATR: [2.0, 3.0, 4.0],
-  trailingStopATR: [0, 2.0, 2.5],
+  stopLossATR: [1.5, 2.0, 3.0],
+  takeProfitATR: [3.0, 5.0, 8.0],
+  trailingStopATR: [0, 3.0, 4.0],
   riskPerTrade: [0.2, 0.3],
+  minHoldBars: [0, 2],
 };
 
 /**
@@ -67,6 +68,16 @@ const STRATEGY_PARAM_GRIDS = {
     fast: [7, 9],
     mid: [15, 21],
     slow: [45, 55],
+  },
+  'mean-reversion': {
+    emaPeriod: [15, 20],
+    keltnerMult: [1.2, 1.5, 2.0],
+    deviationThreshold: [1.2, 1.5, 2.0],
+  },
+  'adaptive-momentum': {
+    rocPeriod: [7, 10, 14],
+    rocSmooth: [3, 5],
+    adxThreshold: [18, 22],
   },
 };
 
@@ -120,9 +131,7 @@ function runWalkForward(createStrategyFn, strategyName, candles, config = {}) {
   }
 
   // 전략 파라미터 그리드 결정
-  const sGrid = optimizeStrategy
-    ? strategyGrid || STRATEGY_PARAM_GRIDS[strategyName] || {}
-    : {};
+  const sGrid = optimizeStrategy ? strategyGrid || STRATEGY_PARAM_GRIDS[strategyName] || {} : {};
   const eGrid = engineGrid;
 
   // 모든 조합 생성
