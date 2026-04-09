@@ -12,6 +12,7 @@ const TripleEMA = require('./TripleEMA');
 const ComboSignal = require('./ComboSignal');
 const MeanReversion = require('./MeanReversion');
 const AdaptiveMomentum = require('./AdaptiveMomentum');
+const EnsembleStrategy = require('./EnsembleStrategy');
 
 // 전략 이름 → 클래스 매핑 (별칭 포함)
 const STRATEGIES = {
@@ -27,7 +28,11 @@ const STRATEGIES = {
   'combo-signal': ComboSignal,
   'mean-reversion': MeanReversion,
   'adaptive-momentum': AdaptiveMomentum,
+  ensemble: EnsembleStrategy,
 };
+
+// 워크포워드 검증 결과 기반 추천 전략
+const RECOMMENDED = ['ensemble', 'macd', 'mean-reversion'];
 
 /**
  * 전략 이름으로 인스턴스 생성
@@ -49,6 +54,8 @@ module.exports = {
   ComboSignal,
   MeanReversion,
   AdaptiveMomentum,
+  EnsembleStrategy,
   STRATEGIES,
+  RECOMMENDED,
   createStrategy,
 };

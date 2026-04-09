@@ -317,14 +317,18 @@ class TradingBot {
   /**
    * 봇 설정 변경 (실행 중이면 재시작)
    */
-  configure({ market, strategyName, unit }) {
+  configure({ market, strategyName, strategyParams, unit }) {
     const wasRunning = this.running;
     if (wasRunning) this.stop();
 
     if (market) this.config.market = market;
     if (strategyName) {
       this.config.strategyName = strategyName;
+      this.config.strategyParams = strategyParams || {};
       this.strategy = createStrategy(strategyName, this.config.strategyParams);
+    } else if (strategyParams) {
+      this.config.strategyParams = strategyParams;
+      this.strategy = createStrategy(this.config.strategyName, strategyParams);
     }
     if (unit) this.config.unit = unit;
 

@@ -3,7 +3,7 @@
  */
 const express = require('express');
 const router = express.Router();
-const { STRATEGIES, createStrategy } = require('../strategies');
+const { STRATEGIES, RECOMMENDED, createStrategy } = require('../strategies');
 const store = require('../store/jsonStore');
 
 // 전략 목록 조회
@@ -16,6 +16,7 @@ router.get('/', (req, res) => {
       name: instance.name,
       params: instance.params,
       enabled: state?.enabled ?? false,
+      recommended: RECOMMENDED.includes(key),
     };
   });
   res.json(strategies);

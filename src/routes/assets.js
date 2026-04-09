@@ -73,8 +73,8 @@ router.post('/bot/stop', (req, res) => {
 // 봇 설정 변경 (마켓, 전략, 캔들 단위)
 router.post('/bot/configure', (req, res) => {
   if (!botInstance) return res.status(400).json({ error: '봇 인스턴스 없음' });
-  const { market, strategyName, unit } = req.body;
-  const status = botInstance.configure({ market, strategyName, unit });
+  const { market, strategyName, strategyParams, unit } = req.body;
+  const status = botInstance.configure({ market, strategyName, strategyParams, unit });
   res.json(status);
 });
 

@@ -79,6 +79,11 @@ const STRATEGY_PARAM_GRIDS = {
     rocSmooth: [3, 5],
     adxThreshold: [18, 22],
   },
+  ensemble: {
+    trendMACDWeight: [0.7, 0.8],
+    rangeMRWeight: [0.7, 0.8],
+    mrKeltnerMult: [1.2, 1.5],
+  },
 };
 
 /**
