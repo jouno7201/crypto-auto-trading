@@ -7,11 +7,14 @@
  */
 
 const { fetchUpbitCandles } = require('./dataCollector');
-const { executeOrder } = require('./executor');
+const { executeWithRetry } = require('./executor');
 const RiskManager = require('./riskManager');
 const { createStrategy } = require('../strategies');
 const store = require('../store/jsonStore');
 const notify = require('./notifier');
+const { createLogger } = require('../utils/logger');
+
+const log = createLogger('bot');
 
 class TradingBot {
   constructor(config = {}) {
@@ -35,6 +38,10 @@ class TradingBot {
     this.position = null; // { market, side, entryPrice, volume, entryTime }
     this.capital = this.config.initialCapital;
     this.tradeCount = 0;
+    this.consecutiveErrors = 0;
+
+    // 이전 상태 복원 시도
+    this._restoreState();
 
     // 일일 시작 자본 설정
     this.riskManager.setDailyStart(this.capital);
@@ -45,20 +52,21 @@ class TradingBot {
    */
   start() {
     if (this.running) {
-      console.log('[봇] 이미 실행 중');
+      log.warn('봇이 이미 실행 중');
       return;
     }
 
     this.running = true;
-    console.log('═══════════════════════════════════════');
-    console.log('  🤖 트레이딩 봇 시작');
-    console.log('═══════════════════════════════════════');
-    console.log(`  마켓: ${this.config.market}`);
-    console.log(`  전략: ${this.strategy.name}`);
-    console.log(`  모드: ${process.env.TRADING_MODE || 'paper'}`);
-    console.log(`  간격: ${this.config.intervalMs / 1000}초`);
-    console.log(`  자본: ${this.capital.toLocaleString()}원`);
-    console.log('═══════════════════════════════════════\n');
+    log.info(
+      {
+        market: this.config.market,
+        strategy: this.strategy.name,
+        mode: process.env.TRADING_MODE || 'paper',
+        interval: this.config.intervalMs / 1000,
+        capital: this.capital,
+      },
+      '트레이딩 봇 시작',
+    );
 
     // 봇 시작 알림
     notify.notifyBotStart({
@@ -71,6 +79,9 @@ class TradingBot {
     // 즉시 한 번 실행 후 인터벌
     this.tick();
     this.intervalId = setInterval(() => this.tick(), this.config.intervalMs);
+
+    // 주기적 상태 저장 (5분마다)
+    this._stateTimer = setInterval(() => this._saveState(), 5 * 60 * 1000);
 
     // 일일 리포트 (매일 09:00)
     this._scheduleDailyReport();
@@ -86,11 +97,15 @@ class TradingBot {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    console.log('\n[봇] 트레이딩 봇 정지');
+    log.info('트레이딩 봇 정지');
     this._saveState();
     if (this._dailyTimer) {
       clearTimeout(this._dailyTimer);
       this._dailyTimer = null;
+    }
+    if (this._stateTimer) {
+      clearInterval(this._stateTimer);
+      this._stateTimer = null;
     }
     notify.notifyBotStop({
       market: this.config.market,
@@ -123,7 +138,7 @@ class TradingBot {
       if (this.position) {
         const exitCheck = this.riskManager.checkExit(this.position.entryPrice, currentPrice);
         if (exitCheck.shouldExit) {
-          console.log(`[봇] ${exitCheck.reason} → 매도 실행`);
+          log.info({ reason: exitCheck.reason }, '손절/익절 매도 실행');
           await this._sell(currentPrice, exitCheck.reason);
           return;
         }
@@ -133,33 +148,43 @@ class TradingBot {
       const signal = this.strategy.analyze(candles);
 
       // 로그 출력
-      const posInfo = this.position ? `보유중 (진입: ${this.position.entryPrice.toLocaleString()})` : '미보유';
-      console.log(`[${timestamp}] 현재가: ${currentPrice.toLocaleString()} | 시그널: ${signal.action} | ${posInfo}`);
+      log.debug({ timestamp, price: currentPrice, signal: signal.action, position: !!this.position }, '틱 분석');
+
+      // 연속 에러 카운터 리셋
+      this.consecutiveErrors = 0;
 
       // 5. 시그널에 따른 주문 실행
       if (signal.action === 'buy' && !this.position) {
         if (!riskCheck.allowed) {
-          console.log(`[봇] 매수 스킵: ${riskCheck.reason}`);
+          log.info({ reason: riskCheck.reason }, '매수 스킵 (리스크)');
           return;
         }
 
         const sizing = this.riskManager.calculatePositionSize(this.capital, currentPrice, positions);
         if (sizing.investAmount < 5000) {
-          console.log('[봇] 매수 스킵: 최소 주문금액 미달');
+          log.info('매수 스킵: 최소 주문금액 미달');
           return;
         }
 
-        console.log(`[봇] 매수 시그널: ${signal.reason} (강도: ${signal.strength})`);
+        log.info({ reason: signal.reason, strength: signal.strength }, '매수 시그널');
         await this._buy(currentPrice, sizing.investAmount, signal.reason);
       }
 
       if (signal.action === 'sell' && this.position) {
-        console.log(`[봇] 매도 시그널: ${signal.reason} (강도: ${signal.strength})`);
+        log.info({ reason: signal.reason, strength: signal.strength }, '매도 시그널');
         await this._sell(currentPrice, signal.reason);
       }
     } catch (err) {
-      console.error(`[봇] 에러: ${err.message}`);
+      this.consecutiveErrors++;
+      log.error({ err, consecutiveErrors: this.consecutiveErrors }, '틱 처리 에러');
       notify.notifyError({ context: 'tick()', message: err.message });
+
+      // 연속 에러 5회 이상이면 봇 자동 정지 (네트워크 장애 등)
+      if (this.consecutiveErrors >= 5) {
+        log.fatal({ consecutiveErrors: this.consecutiveErrors }, '연속 에러 한도 초과 — 봇 자동 정지');
+        notify.notifyError({ context: 'auto-stop', message: `연속 ${this.consecutiveErrors}회 에러로 봇 자동 정지` });
+        this.stop();
+      }
     }
   }
 
@@ -167,24 +192,37 @@ class TradingBot {
    * 매수 실행
    */
   async _buy(price, amount, reason) {
-    const order = await executeOrder(this.config.market, 'buy', { price: amount, amount });
+    const order = await executeWithRetry(this.config.market, 'buy', { price: amount, amount });
 
-    if (order.status === 'filled') {
+    if (order && (order.status === 'filled' || order.status === 'partial_filled')) {
+      const actualVolume = order.executedVolume || amount / price;
+      const actualPrice = order.executedPrice || price;
+      const actualAmount = order.fee != null ? actualVolume * actualPrice + order.fee : amount;
+
       this.position = {
         market: this.config.market,
-        entryPrice: order.executedPrice || price,
-        volume: order.executedVolume || amount / price,
+        entryPrice: actualPrice,
+        volume: actualVolume,
         entryTime: new Date().toISOString(),
         reason,
       };
-      this.capital -= amount;
+      this.capital -= Math.min(actualAmount, amount);
       this.tradeCount++;
 
+      if (order.status === 'partial_filled') {
+        log.warn({ requestedAmount: amount, actualVolume }, '부분 매수 체결');
+      }
+
       const exits = this.riskManager.getExitPrices(this.position.entryPrice);
-      console.log(
-        `  ✅ 매수 체결 | 가격: ${this.position.entryPrice.toLocaleString()} | 금액: ${amount.toLocaleString()}원`,
+      log.info(
+        {
+          price: this.position.entryPrice,
+          amount,
+          stopLoss: exits.stopLoss,
+          takeProfit: exits.takeProfit,
+        },
+        '매수 체결',
       );
-      console.log(`  📍 손절: ${exits.stopLoss.toLocaleString()} | 익절: ${exits.takeProfit.toLocaleString()}`);
 
       notify.notifyBuy({
         market: this.config.market,
@@ -205,6 +243,8 @@ class TradingBot {
         reason,
         strategy: this.strategy.name,
       });
+
+      this._saveState();
     }
   }
 
@@ -214,9 +254,9 @@ class TradingBot {
   async _sell(price, reason) {
     if (!this.position) return;
 
-    const order = await executeOrder(this.config.market, 'sell', { volume: this.position.volume });
+    const order = await executeWithRetry(this.config.market, 'sell', { volume: this.position.volume });
 
-    if (order.status === 'filled') {
+    if (order && (order.status === 'filled' || order.status === 'partial_filled')) {
       const exitPrice = order.executedPrice || price;
       const proceeds = order.proceeds || this.position.volume * exitPrice * 0.9995;
       const pnl = proceeds - this.position.volume * this.position.entryPrice;
@@ -224,9 +264,22 @@ class TradingBot {
 
       this.capital += proceeds;
 
-      const emoji = pnl >= 0 ? '📈' : '📉';
-      console.log(
-        `  ${emoji} 매도 체결 | 가격: ${exitPrice.toLocaleString()} | 손익: ${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()}원 (${pnlPercent}%)`,
+      // 부분 체결 시 잔량 포지션 유지
+      if (order.status === 'partial_filled' && order.remainingVolume > 0) {
+        this.position.volume = order.remainingVolume;
+        log.warn({ remainingVolume: order.remainingVolume }, '부분 매도 체결 — 잔량 포지션 유지');
+      } else {
+        this.position = null;
+      }
+
+      log.info(
+        {
+          exitPrice,
+          pnl: Math.round(pnl),
+          pnlPercent,
+          reason,
+        },
+        pnl >= 0 ? '매도 체결 (이익)' : '매도 체결 (손실)',
       );
 
       notify.notifySell({
@@ -242,7 +295,7 @@ class TradingBot {
       store.append('trades.json', {
         type: 'sell',
         market: this.config.market,
-        entryPrice: this.position.entryPrice,
+        entryPrice: this.position?.entryPrice || price,
         exitPrice,
         volume: this.position.volume,
         pnl: Math.round(pnl),
@@ -251,7 +304,36 @@ class TradingBot {
         strategy: this.strategy.name,
       });
 
-      this.position = null;
+      this._saveState();
+    }
+  }
+
+  /**
+   * 이전 상태 복원 (재시작 시 포지션 보호)
+   */
+  _restoreState() {
+    try {
+      const saved = store.load('bot-state.json', null);
+      if (!saved) return;
+
+      // 같은 마켓/전략인 경우만 복원
+      if (saved.config?.market !== this.config.market) return;
+
+      if (saved.position) {
+        this.position = saved.position;
+        log.info(
+          {
+            market: saved.position.market,
+            entryPrice: saved.position.entryPrice,
+            volume: saved.position.volume,
+          },
+          '기존 포지션 복원',
+        );
+      }
+      if (saved.capital) this.capital = saved.capital;
+      if (saved.tradeCount) this.tradeCount = saved.tradeCount;
+    } catch (err) {
+      log.warn({ err: err.message }, '상태 복원 실패 — 기본값 사용');
     }
   }
 
@@ -332,7 +414,7 @@ class TradingBot {
     }
     if (unit) this.config.unit = unit;
 
-    console.log(`[봇] 설정 변경 → 마켓: ${this.config.market}, 전략: ${this.strategy.name}, 단위: ${this.config.unit}`);
+    log.info({ market: this.config.market, strategy: this.strategy.name, unit: this.config.unit }, '봇 설정 변경');
 
     if (wasRunning) this.start();
     return this.getStatus();

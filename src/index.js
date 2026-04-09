@@ -4,8 +4,16 @@ require('dotenv').config();
 const express = require('express');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const TradingBot = require('./engine/tradingBot');
 const { streamUpbitTicker } = require('./engine/dataCollector');
+const { authenticate, authenticateWs, generateToken } = require('./middleware/auth');
+const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandler');
+const { createLogger } = require('./utils/logger');
+
+const log = createLogger('server');
 
 const app = express();
 const server = createServer(app);
@@ -13,26 +21,102 @@ const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 3008;
 
+// ===== 보안 미들웨어 =====
+
+// Helmet: 보안 HTTP 헤더 (CSP는 대시보드 인라인 스크립트 허용)
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", 'wss:', 'ws:'],
+        imgSrc: ["'self'", 'data:'],
+      },
+    },
+  }),
+);
+
+// CORS: 허용 origin 제한
+const ALLOWED_ORIGINS = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+  : [`http://localhost:${PORT}`];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // 같은 origin (대시보드) 또는 허용 목록
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS 정책에 의해 차단됨'));
+      }
+    },
+    credentials: true,
+  }),
+);
+
+// Rate Limiting: 전역 (분당 100회)
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_GLOBAL || '100', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.' },
+});
+app.use('/api/', globalLimiter);
+
+// Rate Limiting: 무거운 작업 (분당 5회)
+const heavyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_HEAVY || '5', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '백테스트/리포트 요청이 너무 많습니다. 잠시 후 다시 시도하세요.' },
+});
+
 // JSON 파싱
 app.use(express.json());
 
 // 정적 파일 (대시보드)
 app.use(express.static('src/dashboard'));
 
-// 헬스체크
+// 헬스체크 (인증 불필요)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-// API 라우트
-app.use('/api/strategies', require('./routes/strategies'));
-app.use('/api/trades', require('./routes/trades'));
-app.use('/api/assets', require('./routes/assets'));
-app.use('/api/reports', require('./routes/reports'));
+// 토큰 발급 엔드포인트 (API_TOKEN으로 JWT 발급)
+app.post('/api/auth/token', (req, res) => {
+  const { secret } = req.body;
+  const apiToken = process.env.API_TOKEN;
+  if (!apiToken) return res.status(501).json({ error: '인증이 설정되지 않았습니다' });
+  if (secret !== apiToken) return res.status(401).json({ error: '잘못된 인증 정보' });
 
-// 알림 테스트 API
+  try {
+    const token = generateToken({ role: 'admin' }, process.env.JWT_EXPIRES || '24h');
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== API 라우트 (인증 적용) =====
+app.use('/api/strategies', authenticate, require('./routes/strategies'));
+app.use('/api/trades', authenticate, require('./routes/trades'));
+app.use('/api/assets', authenticate, require('./routes/assets'));
+app.use('/api/reports', authenticate, require('./routes/reports'));
+
+// 무거운 작업에 추가 Rate Limiting 적용
+const assetsRouter = require('./routes/assets');
+app.use('/api/assets/backtest/run', authenticate, heavyLimiter);
+app.use('/api/assets/backtest/walk-forward', authenticate, heavyLimiter);
+app.use('/api/reports/generate', authenticate, heavyLimiter);
+
+// 알림 테스트 API (인증 필요)
 const notify = require('./engine/notifier');
-app.post('/api/notify/test', async (req, res) => {
+app.post('/api/notify/test', authenticate, async (req, res) => {
   try {
     await notify.notifyBotStart({
       market: 'KRW-BTC',
@@ -71,8 +155,15 @@ function startTickerStream() {
   });
 }
 
-wss.on('connection', (ws) => {
-  console.log('[WS] 클라이언트 연결');
+wss.on('connection', (ws, req) => {
+  // WebSocket 인증
+  const authResult = authenticateWs(req);
+  if (!authResult.authenticated) {
+    ws.close(4001, authResult.error);
+    return;
+  }
+
+  log.info('클라이언트 WebSocket 연결');
 
   // 연결 시 현재 봇 상태 전송
   ws.send(JSON.stringify({ type: 'botStatus', data: bot.getStatus() }));
@@ -107,7 +198,7 @@ wss.on('connection', (ws) => {
     }
   });
 
-  ws.on('close', () => console.log('[WS] 클라이언트 연결 해제'));
+  ws.on('close', () => log.debug('클라이언트 WebSocket 연결 해제'));
 });
 
 // 봇 상태 주기적 브로드캐스트 (5초)
@@ -118,9 +209,24 @@ setInterval(() => {
   });
 }, 5000);
 
-server.listen(PORT, () => {
-  console.log(`🚀 서버 실행 중: http://localhost:${PORT}`);
-  startTickerStream();
+// 404 및 전역 에러 핸들러 (라우트 등록 후 맨 마지막에 추가)
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
+
+// 미처리 예외 안전 처리
+process.on('unhandledRejection', (reason) => {
+  log.error({ err: reason }, '미처리 Promise 거부');
 });
+process.on('uncaughtException', (err) => {
+  log.fatal({ err }, '미처리 예외 — 서버 종료');
+  process.exit(1);
+});
+
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(PORT, () => {
+    log.info({ port: PORT }, '서버 실행 중');
+    startTickerStream();
+  });
+}
 
 module.exports = { app, server, wss, bot };

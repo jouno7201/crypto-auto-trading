@@ -455,7 +455,8 @@ function runBacktest(strategy, candles, options = {}) {
 function saveResult(result) {
   const filename = `backtest-results/${result.strategy}_${Date.now()}.json`;
   store.save(filename, result);
-  console.log(`[백테스트] 결과 저장: ${filename}`);
+  const { createLogger } = require('../utils/logger');
+  createLogger('backtest').info({ filename }, '백테스트 결과 저장');
   return filename;
 }
 

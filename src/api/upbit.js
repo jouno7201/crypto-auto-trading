@@ -8,6 +8,7 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const { orderLimiter, queryLimiter } = require('../utils/rateLimiter');
 
 const BASE_URL = 'https://api.upbit.com/v1';
 
@@ -111,13 +112,67 @@ class UpbitAPI {
    * @param {object} options - { volume, price }
    */
   async order(market, side, ordType, options = {}) {
-    const params = { market, side, ord_type: ordType, ...options };
-    const queryString = new URLSearchParams(params).toString();
-    const token = this._createToken(queryString);
-    const { data } = await axios.post(`${BASE_URL}/orders`, params, {
-      headers: { Authorization: `Bearer ${token}` },
+    return orderLimiter.schedule(async () => {
+      const params = { market, side, ord_type: ordType, ...options };
+      const queryString = new URLSearchParams(params).toString();
+      const token = this._createToken(queryString);
+      const { data } = await axios.post(`${BASE_URL}/orders`, params, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return data;
     });
-    return data;
+  }
+
+  /**
+   * 개별 주문 조회 (인증 필요)
+   * @param {string} uuid - 주문 UUID
+   */
+  async getOrder(uuid) {
+    return queryLimiter.schedule(async () => {
+      const params = { uuid };
+      const queryString = new URLSearchParams(params).toString();
+      const token = this._createToken(queryString);
+      const { data } = await axios.get(`${BASE_URL}/order`, {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return data;
+    });
+  }
+
+  /**
+   * 주문 취소 (인증 필요)
+   * @param {string} uuid - 주문 UUID
+   */
+  async cancelOrder(uuid) {
+    return orderLimiter.schedule(async () => {
+      const params = { uuid };
+      const queryString = new URLSearchParams(params).toString();
+      const token = this._createToken(queryString);
+      const { data } = await axios.delete(`${BASE_URL}/order`, {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return data;
+    });
+  }
+
+  /**
+   * 대기 주문 목록 조회 (인증 필요)
+   * @param {string} market - 마켓 코드 (옵션)
+   */
+  async getOpenOrders(market) {
+    return queryLimiter.schedule(async () => {
+      const params = { state: 'wait' };
+      if (market) params.market = market;
+      const queryString = new URLSearchParams(params).toString();
+      const token = this._createToken(queryString);
+      const { data } = await axios.get(`${BASE_URL}/orders`, {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return data;
+    });
   }
 }
 

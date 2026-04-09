@@ -845,11 +845,31 @@
       }
 
       // WebSocket 연결
-      const wsUrl = `ws://${location.host}`;
+      const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
       let ws;
       let currentPrice = 0;
 
+      // ===== 인증 토큰 관리 =====
+      function getToken() {
+        return localStorage.getItem('auth_token') || '';
+      }
+      function setToken(t) {
+        localStorage.setItem('auth_token', t);
+      }
+
+      // 인증 헤더가 포함된 fetch 래퍼
+      async function apiFetch(url, opts = {}) {
+        const token = getToken();
+        const headers = { ...(opts.headers || {}) };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        return fetch(url, { ...opts, headers });
+      }
+
       function connectWS() {
+        const token = getToken();
+        const wsUrl = token
+          ? `${wsProto}//${location.host}?token=${encodeURIComponent(token)}`
+          : `${wsProto}//${location.host}`;
         ws = new WebSocket(wsUrl);
         ws.onopen = () => console.log('WS 연결');
         ws.onmessage = (e) => {
@@ -944,7 +964,7 @@
       // 전략 목록 로드
       async function loadStrategies() {
         try {
-          const res = await fetch('/api/strategies');
+          const res = await apiFetch('/api/strategies');
           const strategies = await res.json();
           const el = document.getElementById('strategyList');
           el.innerHTML = strategies
@@ -963,14 +983,14 @@
       }
 
       async function toggleStrategy(id, el) {
-        await fetch(`/api/strategies/${id}/toggle`, { method: 'POST' });
+        await apiFetch(`/api/strategies/${id}/toggle`, { method: 'POST' });
         el.classList.toggle('active');
       }
 
       // 매매 기록 로드
       async function loadTrades() {
         try {
-          const res = await fetch('/api/trades?limit=20');
+          const res = await apiFetch('/api/trades?limit=20');
           const trades = await res.json();
           const el = document.getElementById('tradeLog');
           if (!trades.length) {
@@ -1022,7 +1042,7 @@
         const unit = document.getElementById('chartUnit').value;
         const market = document.getElementById('botMarket').value;
         try {
-          const res = await fetch(`/api/assets/candles/${encodeURIComponent(market)}?unit=${unit}&count=200`);
+          const res = await apiFetch(`/api/assets/candles/${encodeURIComponent(market)}?unit=${unit}&count=200`);
           const candles = await res.json();
           const data = candles.map((c) => ({
             time: Math.floor(new Date(c.timestamp).getTime() / 1000),
@@ -1072,7 +1092,7 @@
             useMarketDetector: document.getElementById('btMarketDetect').checked,
           };
 
-          const res = await fetch('/api/assets/backtest/run', {
+          const res = await apiFetch('/api/assets/backtest/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -1278,7 +1298,7 @@
 
       async function loadBtHistory() {
         try {
-          const res = await fetch('/api/assets/backtest');
+          const res = await apiFetch('/api/assets/backtest');
           const list = await res.json();
           const el = document.getElementById('btHistory');
           if (!list.length) {
@@ -1331,7 +1351,7 @@
             period: document.getElementById('rpPeriod').value,
             date: document.getElementById('rpDate').value,
           };
-          const res = await fetch('/api/reports/generate', {
+          const res = await apiFetch('/api/reports/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -1444,7 +1464,7 @@
 
       async function loadRpHistory() {
         try {
-          const res = await fetch('/api/reports');
+          const res = await apiFetch('/api/reports');
           const list = await res.json();
           const el = document.getElementById('rpHistory');
           if (!list.length) {
@@ -1474,7 +1494,7 @@
 
       async function viewReport(file) {
         try {
-          const res = await fetch('/api/reports/' + file);
+          const res = await apiFetch('/api/reports/' + file);
           const data = await res.json();
           if (data.error) throw new Error(data.error);
           showReport({ ...data, file });
@@ -1511,7 +1531,7 @@
             optimizeStrategy: document.getElementById('wfOptStrategy').checked,
           };
 
-          const res = await fetch('/api/assets/backtest/walk-forward', {
+          const res = await apiFetch('/api/assets/backtest/walk-forward', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),

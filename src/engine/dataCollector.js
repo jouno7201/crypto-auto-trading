@@ -8,6 +8,9 @@
 const WebSocket = require('ws');
 const { upbit, binance } = require('../api');
 const store = require('../store/jsonStore');
+const { createLogger } = require('../utils/logger');
+
+const log = createLogger('data');
 
 // 메모리 캐시: { "KRW-BTC_60": [...candles] }
 const cache = new Map();
@@ -33,7 +36,7 @@ async function fetchUpbitCandles(market, unit = '60', count = 200) {
   // JSON 파일 저장
   store.save(`candles/${market}_${unit}.json`, candles);
 
-  console.log(`[수집] ${market} ${unit}분봉 ${candles.length}개 저장 완료`);
+  log.debug({ market, unit, count: candles.length }, '캔들 수집 완료');
   return candles;
 }
 
@@ -48,7 +51,7 @@ async function fetchBinanceCandles(symbol, interval = '1h', limit = 200) {
 
   store.save(`candles/${symbol}_${interval}.json`, candles);
 
-  console.log(`[수집] ${symbol} ${interval} ${candles.length}개 저장 완료`);
+  log.debug({ symbol, interval, count: candles.length }, '바이낸스 캔들 수집 완료');
   return candles;
 }
 
@@ -75,7 +78,7 @@ function streamUpbitTicker(markets, onTick) {
   ws.on('open', () => {
     const payload = [{ ticket: `ticker-${Date.now()}` }, { type: 'ticker', codes: markets }];
     ws.send(JSON.stringify(payload));
-    console.log(`[WS] Upbit 실시간 시세 구독: ${markets.join(', ')}`);
+    log.info({ markets }, 'Upbit 실시간 시세 구독');
   });
 
   ws.on('message', (raw) => {
@@ -94,8 +97,8 @@ function streamUpbitTicker(markets, onTick) {
     }
   });
 
-  ws.on('error', (err) => console.error('[WS] Upbit 에러:', err.message));
-  ws.on('close', () => console.log('[WS] Upbit 연결 종료'));
+  ws.on('error', (err) => log.error({ err: err.message }, 'Upbit WebSocket 에러'));
+  ws.on('close', () => log.warn('Upbit WebSocket 연결 종료'));
 
   return ws;
 }
@@ -160,7 +163,7 @@ async function fetchUpbitCandlesByRange(market, unit, startDate, endDate) {
     return true;
   });
 
-  console.log(`[수집] ${market} ${unit} ${startDate}~${endDate} → ${allCandles.length}개 캔들`);
+  log.info({ market, unit, startDate, endDate, count: allCandles.length }, '기간별 캔들 수집 완료');
   return allCandles;
 }
 

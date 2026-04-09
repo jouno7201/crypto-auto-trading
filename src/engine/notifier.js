@@ -8,6 +8,9 @@
 
 const https = require('https');
 const url = require('url');
+const { createLogger } = require('../utils/logger');
+
+const log = createLogger('notify');
 
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || '';
 
@@ -22,7 +25,7 @@ function sendWebhook(payload) {
       const parsed = new URL(WEBHOOK_URL);
       // Discord webhook URL 형식 검증
       if (!parsed.hostname.endsWith('discord.com') || !parsed.pathname.startsWith('/api/webhooks/')) {
-        console.error('[알림] 유효하지 않은 Discord 웹훅 URL');
+        log.warn('유효하지 않은 Discord 웹훅 URL');
         return resolve();
       }
 
@@ -43,7 +46,7 @@ function sendWebhook(payload) {
       });
 
       req.on('error', (err) => {
-        console.error(`[알림] Discord 전송 실패: ${err.message}`);
+        log.error({ err: err.message }, 'Discord 전송 실패');
         resolve();
       });
 
@@ -55,7 +58,7 @@ function sendWebhook(payload) {
       req.write(body);
       req.end();
     } catch (err) {
-      console.error(`[알림] Discord 전송 에러: ${err.message}`);
+      log.error({ err: err.message }, 'Discord 전송 에러');
       resolve();
     }
   });
