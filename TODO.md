@@ -120,11 +120,11 @@
 
 ### 11. 인프라 & 배포
 
-- [ ] Docker 컨테이너화 (Dockerfile + docker-compose)
-- [ ] CI/CD 파이프라인 (GitHub Actions)
-- [ ] 클라우드 배포 (AWS EC2/Lightsail 또는 Railway)
-- [ ] HTTPS 적용 (Let's Encrypt)
-- [ ] 자동 데이터 백업 (일 1회)
+- [x] Docker 컨테이너화 (Dockerfile + docker-compose)
+- [x] CI/CD 파이프라인 (GitHub Actions)
+- [x] 클라우드 배포 (AWS EC2/Lightsail 또는 Railway)
+- [x] HTTPS 적용 (Let's Encrypt)
+- [x] 자동 데이터 백업 (일 1회)
 
 ### 12. 고급 기능
 

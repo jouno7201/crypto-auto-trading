@@ -1,0 +1,12 @@
+# Docker ignore
+node_modules/
+.env
+.env.local
+data/
+logs/
+*.log
+.git/
+.DS_Store
+*.md
+tests/
+coverage/
