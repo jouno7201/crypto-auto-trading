@@ -10,6 +10,7 @@
 
 const { upbit } = require('../api');
 const store = require('../store/jsonStore');
+const telegram = require('../utils/telegram');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('executor');
@@ -116,6 +117,9 @@ async function executeOrder(market, side, options = {}) {
   // 주문 로그 저장
   store.append('orders.json', order);
   log.info({ mode: order.mode, side, market, status: order.status, orderId: order.id }, '주문 실행');
+
+  // Telegram 알림 (비동기, 실패해도 무시)
+  telegram.notifyTrade({ type: side, market, price: order.executedPrice || order.price, volume: order.executedVolume || order.volume, strategy: order.strategy, reason: order.reason, pnl: order.pnl }).catch(() => {});
 
   return order;
 }

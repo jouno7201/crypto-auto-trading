@@ -128,11 +128,11 @@
 
 ### 12. 고급 기능
 
-- [ ] AI/ML 전략 (Python 마이크로서비스 연동)
-- [ ] 뉴스/소셜 센티먼트 데이터 피드
-- [ ] Binance 주문 실행 지원 (현재 read-only)
-- [ ] 거래소 간 차익거래 전략
-- [ ] Telegram 봇 알림 추가
+- [x] AI/ML 전략 (Python 마이크로서비스 연동) — mlBridge.js + ml_service.py
+- [x] 뉴스/소셜 센티먼트 데이터 피드 — mlBridge.getSentiment + ml_service /sentiment
+- [x] Binance 주문 실행 지원 — exchange/binance.js (시세/주문/잔고)
+- [x] 거래소 간 차익거래 전략 — arbitrage.js (김치 프리미엄, 멀티 스캔)
+- [x] Telegram 봇 알림 추가 — telegram.js (거래/리포트/알림), executor 연동
 
 ---
 

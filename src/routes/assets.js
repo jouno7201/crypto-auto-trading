@@ -420,6 +420,35 @@ router.get('/analysis/benchmark', (req, res) => {
 });
 
 
+// === 차익거래 API ===
+const arbitrage = require('../engine/arbitrage');
+
+// 김치 프리미엄 조회
+router.get('/analysis/premium', async (req, res) => {
+  try {
+    const { market, symbol, krwUsd } = req.query;
+    const result = await arbitrage.getKimchiPremium(
+      market || 'KRW-BTC',
+      symbol || 'BTCUSDT',
+      krwUsd ? parseFloat(krwUsd) : undefined
+    );
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 다중 마켓 김치 프리미엄 스캔
+router.get('/analysis/premium/scan', async (req, res) => {
+  try {
+    const result = await arbitrage.scanPremiums(null, req.query.krwUsd ? parseFloat(req.query.krwUsd) : undefined);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;
 module.exports.setBotInstance = setBotInstance;
 module.exports.setBotManager = setBotManager;
