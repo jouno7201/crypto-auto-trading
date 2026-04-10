@@ -133,9 +133,9 @@ class TradingBot {
       const timestamp = candles[candles.length - 1].timestamp;
 
       // ATR 계산 및 마켓 상태 감지
-      const closes = candles.map(c => c.close);
-      const highs = candles.map(c => c.high);
-      const lows = candles.map(c => c.low);
+      const closes = candles.map((c) => c.close);
+      const highs = candles.map((c) => c.high);
+      const lows = candles.map((c) => c.low);
       const atrValues = atr(highs, lows, closes, 14);
       const currentATR = atrValues.length > 0 ? atrValues[atrValues.length - 1] : 0;
       const marketState = detectMarketState(candles);
@@ -368,10 +368,7 @@ class TradingBot {
       if (!this.position.tpLadderFilled) this.position.tpLadderFilled = [];
       this.position.tpLadderFilled.push(ladderIndex);
 
-      log.info(
-        { exitPrice, portion, pnl: Math.round(pnl), remaining: this.position.volume, reason },
-        '부분 익절 체결',
-      );
+      log.info({ exitPrice, portion, pnl: Math.round(pnl), remaining: this.position.volume, reason }, '부분 익절 체결');
 
       store.append('trades.json', {
         type: 'partial-sell',

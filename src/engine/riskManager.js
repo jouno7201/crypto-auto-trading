@@ -127,7 +127,8 @@ class RiskManager {
     if (currentATR > 0 && slMult > 0) {
       return {
         stopLoss: entryPrice - currentATR * slMult,
-        takeProfit: tpMult > 0 ? entryPrice + currentATR * tpMult : entryPrice * (1 + this.config.takeProfitPercent / 100),
+        takeProfit:
+          tpMult > 0 ? entryPrice + currentATR * tpMult : entryPrice * (1 + this.config.takeProfitPercent / 100),
         trailingStop: tsMult > 0 ? tsMult : 0,
         mode: 'atr',
         atr: currentATR,

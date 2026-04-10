@@ -229,7 +229,11 @@ function gracefulShutdown(signal) {
     bot.stop(); // 상태 저장 + 포지션 보호
   }
   if (tickerWs) {
-    try { tickerWs.close(); } catch (_) { /* ignore */ }
+    try {
+      tickerWs.close();
+    } catch (_) {
+      /* ignore */
+    }
   }
   server.close(() => {
     log.info('서버 종료 완료');
