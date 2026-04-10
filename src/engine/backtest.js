@@ -24,11 +24,11 @@ function runBacktest(strategy, candles, options = {}) {
     initialCapital = 1_000_000,
     feeRate = 0.0005,
     slippage = 0.0003, // 업비트 BTC/KRW 실제 슬리피지 (0.03%)
-    riskPerTrade = 0.3, // 1회 투자 비율 (30%)
+    riskPerTrade = 0.2, // 1회 투자 비율 (20% — WF 최적값)
     // 손절/익절
-    stopLossATR = 2.0, // ATR × N 손절 (0 = 비활성)
-    takeProfitATR = 3.0, // ATR × N 익절 (0 = 비활성)
-    trailingStopATR = 2.5, // 고점 대비 ATR × N 트레일링 (0 = 비활성)
+    stopLossATR = 1.5, // ATR × N 손절 — 타이트 SL이 WF에서 우수
+    takeProfitATR = 5.0, // ATR × N 익절 — TP:SL ≥ 3:1 유지 (WF 최적)
+    trailingStopATR = 0, // 트레일링 비활성 — 고정 TP가 WF에서 우수
     // 쿨다운
     cooldownBars = 2, // 손절 후 재진입 금지 봉수
     // 최소 보유 기간 (SL/TP 유예)

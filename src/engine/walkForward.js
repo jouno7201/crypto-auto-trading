@@ -35,11 +35,11 @@ function generateGrid(grid) {
  * 기본 최적화 그리드 (엔진 파라미터)
  */
 const DEFAULT_ENGINE_GRID = {
-  stopLossATR: [1.5, 2.0, 3.0],
-  takeProfitATR: [3.0, 5.0, 8.0],
-  trailingStopATR: [0, 3.0, 4.0],
-  riskPerTrade: [0.2, 0.3],
-  minHoldBars: [0, 2],
+  stopLossATR: [1.0, 1.5, 2.0],      // 타이트 SL 집중 (WF: 1.5 최적)
+  takeProfitATR: [5.0, 6.0, 8.0],    // 높은 TP:SL 비율 유지 (≥3:1)
+  trailingStopATR: [0],               // 비활성 고정 (WF: 트레일링 손해)
+  riskPerTrade: [0.15, 0.2],          // 보수적 포지션 (WF: 0.2 최적)
+  minHoldBars: [0],                    // 빠른 탈출 허용
 };
 
 /**
@@ -60,9 +60,9 @@ const STRATEGY_PARAM_GRIDS = {
     multiplier: [1.5, 2.0, 2.5],
   },
   macd: {
-    fastPeriod: [8, 12],
-    slowPeriod: [21, 26],
-    signalPeriod: [7, 9],
+    fastPeriod: [10, 12],
+    slowPeriod: [18, 21, 24],          // 21 주변 집중 탐색 (WF 최적)
+    signalPeriod: [5, 7, 9],           // 7 주변 집중 탐색 (WF 최적)
   },
   'triple-ema': {
     fast: [7, 9],

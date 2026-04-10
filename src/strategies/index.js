@@ -32,7 +32,9 @@ const STRATEGIES = {
 };
 
 // 워크포워드 검증 결과 기반 추천 전략
-const RECOMMENDED = ['ensemble', 'macd', 'mean-reversion'];
+// WF 분석 기반: MACD만 OOS 수익 (나머지 모두 손실)
+const RECOMMENDED = ['macd'];
+const DEPRECATED = ['volatility-breakout', 'triple-ema', 'adaptive-momentum']; // OOS 대폭 손실
 
 /**
  * 전략 이름으로 인스턴스 생성
@@ -40,6 +42,9 @@ const RECOMMENDED = ['ensemble', 'macd', 'mean-reversion'];
 function createStrategy(name, params = {}) {
   const StrategyClass = STRATEGIES[name];
   if (!StrategyClass) throw new Error(`알 수 없는 전략: ${name}`);
+  if (DEPRECATED.includes(name)) {
+    console.warn(`⚠️  전략 '${name}'은(는) WF 분석에서 OOS 대폭 손실. MACD 사용 권장.`);
+  }
   return new StrategyClass(params);
 }
 
@@ -57,5 +62,6 @@ module.exports = {
   EnsembleStrategy,
   STRATEGIES,
   RECOMMENDED,
+  DEPRECATED,
   createStrategy,
 };

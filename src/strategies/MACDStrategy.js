@@ -11,8 +11,8 @@ class MACDStrategy extends BaseStrategy {
   constructor(params = {}) {
     super('MACD', {
       fastPeriod: 12,
-      slowPeriod: 26,
-      signalPeriod: 9,
+      slowPeriod: 21, // WF 최적값 (26보다 빠른 반응)
+      signalPeriod: 7, // WF 최적값 (9보다 민감)
       trendPeriod: 100,
       ...params,
     });
