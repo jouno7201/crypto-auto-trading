@@ -13,6 +13,7 @@ const ComboSignal = require('./ComboSignal');
 const MeanReversion = require('./MeanReversion');
 const AdaptiveMomentum = require('./AdaptiveMomentum');
 const EnsembleStrategy = require('./EnsembleStrategy');
+const SmartRange = require('./SmartRange');
 
 // 전략 이름 → 클래스 매핑 (별칭 포함)
 const STRATEGIES = {
@@ -29,11 +30,13 @@ const STRATEGIES = {
   'mean-reversion': MeanReversion,
   'adaptive-momentum': AdaptiveMomentum,
   ensemble: EnsembleStrategy,
+  'smart-range': SmartRange,
 };
 
 // 워크포워드 검증 결과 기반 추천 전략
 // WF 분석 기반: MACD만 OOS 수익 (나머지 모두 손실)
-const RECOMMENDED = ['macd'];
+// v2: 전략 고도화 후 재검증 필요 — ensemble, smart-range 추가
+const RECOMMENDED = ['ensemble', 'macd', 'smart-range'];
 const DEPRECATED = ['volatility-breakout', 'triple-ema', 'adaptive-momentum']; // OOS 대폭 손실
 
 /**
@@ -60,6 +63,7 @@ module.exports = {
   MeanReversion,
   AdaptiveMomentum,
   EnsembleStrategy,
+  SmartRange,
   STRATEGIES,
   RECOMMENDED,
   DEPRECATED,

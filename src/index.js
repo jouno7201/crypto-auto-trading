@@ -31,6 +31,7 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
+        scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         connectSrc: ["'self'", 'wss:', 'ws:'],
         imgSrc: ["'self'", 'data:'],
@@ -181,7 +182,11 @@ function startTickerStream() {
 
 function restartTickerStream() {
   if (tickerWs) {
-    try { tickerWs.close(); } catch (_) { /* ignore */ }
+    try {
+      tickerWs.close();
+    } catch (_) {
+      /* ignore */
+    }
   }
   startTickerStream();
 }
@@ -290,7 +295,11 @@ function gracefulShutdown(signal) {
   }
   botManager.stopAll();
   // Close DB connection
-  try { require('./store/jsonStore').close(); } catch (_) { /* ignore */ }
+  try {
+    require('./store/jsonStore').close();
+  } catch (_) {
+    /* ignore */
+  }
   if (tickerWs) {
     try {
       tickerWs.close();

@@ -6,7 +6,7 @@
 const http = require('http');
 
 const BASE = 'http://localhost:3008';
-const STRATEGIES = ['ensemble', 'macd', 'mean-reversion'];
+const STRATEGIES = ['ensemble', 'macd', 'mean-reversion', 'smart-range'];
 
 const COMMON_PARAMS = {
   market: 'KRW-BTC',

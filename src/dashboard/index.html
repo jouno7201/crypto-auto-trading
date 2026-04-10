@@ -101,7 +101,7 @@
       }
       #chart {
         width: 100%;
-        height: 400px;
+        height: clamp(250px, 40vw, 400px);
       }
 
       .sidebar {
@@ -336,11 +336,11 @@
       }
       #btChart {
         width: 100%;
-        height: 300px;
+        height: clamp(200px, 30vw, 300px);
       }
       #btCandleChart {
         width: 100%;
-        height: 400px;
+        height: clamp(250px, 40vw, 400px);
       }
       .bt-candle-wrap {
         background: #161b22;
@@ -448,7 +448,7 @@
         font-size: 14px;
       }
       #pnlEquityChart {
-        height: 220px;
+        height: clamp(160px, 22vw, 220px);
         border-radius: 6px;
         background: #161b22;
       }
@@ -646,6 +646,270 @@
         font-size: 11px;
       }
 
+      /* Toast notifications */
+      .toast-container {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+      }
+      .toast {
+        pointer-events: auto;
+        min-width: 280px;
+        max-width: 400px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        animation: toastIn 0.3s ease-out;
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+      }
+      .toast.removing {
+        opacity: 0;
+        transform: translateX(40px);
+      }
+      .toast-icon {
+        font-size: 16px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .toast-body {
+        flex: 1;
+      }
+      .toast-title {
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .toast-msg {
+        opacity: 0.85;
+        font-size: 12px;
+      }
+      .toast-close {
+        background: none;
+        border: none;
+        color: inherit;
+        opacity: 0.5;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 0;
+        line-height: 1;
+      }
+      .toast-close:hover {
+        opacity: 1;
+      }
+      .toast-success {
+        background: #0d2818;
+        border: 1px solid #238636;
+        color: #3fb950;
+      }
+      .toast-error {
+        background: #2d1014;
+        border: 1px solid #da3633;
+        color: #f85149;
+      }
+      .toast-warning {
+        background: #2a1f04;
+        border: 1px solid #9e6a03;
+        color: #d29922;
+      }
+      .toast-info {
+        background: #0c1929;
+        border: 1px solid #1f6feb;
+        color: #58a6ff;
+      }
+      body.light-mode .toast-success {
+        background: #dafbe1;
+        border-color: #2da44e;
+        color: #116329;
+      }
+      body.light-mode .toast-error {
+        background: #ffebe9;
+        border-color: #cf222e;
+        color: #82071e;
+      }
+      body.light-mode .toast-warning {
+        background: #fff8c5;
+        border-color: #bf8700;
+        color: #4d2d00;
+      }
+      body.light-mode .toast-info {
+        background: #ddf4ff;
+        border-color: #0969da;
+        color: #0550ae;
+      }
+      @keyframes toastIn {
+        from {
+          opacity: 0;
+          transform: translateX(40px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* Loading overlay */
+      .loading-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(13, 17, 23, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        border-radius: 12px;
+      }
+      body.light-mode .loading-overlay {
+        background: rgba(246, 248, 250, 0.7);
+      }
+      .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #30363d;
+        border-top-color: #58a6ff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* WS connection indicator */
+      .ws-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #8b949e;
+      }
+      .ws-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #da3633;
+        transition: background 0.3s;
+      }
+      .ws-dot.connected {
+        background: #3fb950;
+      }
+      .ws-dot.connecting {
+        background: #d29922;
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      /* Empty state */
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 16px;
+        color: #484f58;
+        text-align: center;
+        gap: 8px;
+      }
+      .empty-state-icon {
+        font-size: 32px;
+        opacity: 0.6;
+      }
+      .empty-state-text {
+        font-size: 13px;
+      }
+      .empty-state-sub {
+        font-size: 11px;
+        color: #6e7681;
+      }
+
+      /* Card extra info row */
+      .card-extra {
+        display: flex;
+        gap: 8px;
+        margin-top: 6px;
+        font-size: 11px;
+        color: #8b949e;
+      }
+      .card-extra span {
+        white-space: nowrap;
+      }
+
+      /* Common table cell styles (used in JS-generated HTML) */
+      .tbl-cell {
+        padding: 6px;
+      }
+      .tbl-cell-r {
+        padding: 6px;
+        text-align: right;
+      }
+      .tbl-cell-c {
+        padding: 6px;
+        text-align: center;
+      }
+      .tbl-row-border {
+        border-bottom: 1px solid #21262d;
+      }
+      .tbl-header {
+        color: #8b949e;
+        border-bottom: 1px solid #30363d;
+      }
+      .tbl-empty {
+        padding: 12px;
+        color: #8b949e;
+        text-align: center;
+      }
+      .card-value-sm {
+        font-size: 16px;
+      }
+      .card-value-lg {
+        font-size: 18px;
+      }
+      .text-sm {
+        font-size: 11px;
+      }
+      .text-xs {
+        font-size: 10px;
+      }
+
+      /* WF result blocks */
+      .wf-result-block {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .wf-verdict-pass {
+        background: #0d2818;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        color: #c9d1d9;
+      }
+      .wf-verdict-fail {
+        background: #2d1014;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        color: #c9d1d9;
+      }
+
       /* Enhanced responsive */
       @media (max-width: 480px) {
         .tabs {
@@ -705,9 +969,16 @@
         >
           🌙 다크
         </button>
+        <div class="ws-indicator" id="wsIndicator">
+          <span class="ws-dot" id="wsDot"></span>
+          <span id="wsLabel">연결 중</span>
+        </div>
         <span class="mode mode-paper" id="modeTag">PAPER</span>
       </div>
     </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <!-- 탭 네비게이션 -->
     <div class="tabs">
@@ -726,21 +997,25 @@
           <div class="card-label">총 자산</div>
           <div class="card-value" id="totalAssets">-</div>
           <div class="card-sub" id="totalPnl"></div>
+          <div class="card-extra" id="totalAssetsExtra"></div>
         </div>
         <div class="card">
           <div class="card-label">현재가</div>
           <div class="card-value" id="currentPrice">-</div>
           <div class="card-sub" id="priceChange"></div>
+          <div class="card-extra" id="priceExtra"></div>
         </div>
         <div class="card">
           <div class="card-label">포지션 손익</div>
           <div class="card-value" id="unrealizedPnl">-</div>
           <div class="card-sub" id="positionInfo"></div>
+          <div class="card-extra" id="positionExtra"></div>
         </div>
         <div class="card">
           <div class="card-label">거래 횟수</div>
           <div class="card-value" id="tradeCount">0</div>
           <div class="card-sub" id="botStatus">봇 정지</div>
+          <div class="card-extra" id="tradeExtra"></div>
         </div>
       </div>
 
@@ -1156,7 +1431,12 @@
           <div class="bt-history-row header">
             <span>전략</span><span>수익률</span><span>MDD</span><span>승률</span><span>거래수</span>
           </div>
-          <div id="btHistory"><div style="color: #8b949e; font-size: 12px; padding: 8px 0">결과 없음</div></div>
+          <div id="btHistory">
+            <div class="empty-state">
+              <div class="empty-state-icon">🧪</div>
+              <div class="empty-state-text">백테스트 결과 없음</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1300,13 +1580,60 @@
         <!-- 리포트 히스토리 -->
         <div class="rp-history">
           <h3>📁 리포트 히스토리</h3>
-          <div id="rpHistory"><div style="color: #8b949e; font-size: 12px; padding: 8px 0">리포트 없음</div></div>
+          <div id="rpHistory">
+            <div class="empty-state">
+              <div class="empty-state-icon">📁</div>
+              <div class="empty-state-text">리포트 없음</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     <!-- /tab-reports -->
 
     <script>
+      // ===== Toast Notification System =====
+      function showToast(type, title, msg, duration = 4000) {
+        const container = document.getElementById('toastContainer');
+        const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-' + type;
+        toast.innerHTML =
+          '<span class="toast-icon">' +
+          (icons[type] || '') +
+          '</span>' +
+          '<div class="toast-body">' +
+          '<div class="toast-title">' +
+          title +
+          '</div>' +
+          (msg ? '<div class="toast-msg">' + msg + '</div>' : '') +
+          '</div>' +
+          '<button class="toast-close" onclick="this.parentElement.remove()">✕</button>';
+        container.appendChild(toast);
+        if (duration > 0) {
+          setTimeout(function () {
+            toast.classList.add('removing');
+            setTimeout(function () {
+              toast.remove();
+            }, 300);
+          }, duration);
+        }
+      }
+
+      // ===== Loading Helpers =====
+      function showLoading(el) {
+        if (!el) return;
+        el.style.position = 'relative';
+        var overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="spinner"></div>';
+        el.appendChild(overlay);
+        return overlay;
+      }
+      function hideLoading(overlay) {
+        if (overlay) overlay.remove();
+      }
+
       // 탭 전환
       function switchTab(name) {
         document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
@@ -1340,23 +1667,51 @@
         const token = getToken();
         const headers = { ...(opts.headers || {}) };
         if (token) headers['Authorization'] = 'Bearer ' + token;
-        return fetch(url, { ...opts, headers });
+        const res = await fetch(url, { ...opts, headers });
+        if (!res.ok && res.status >= 500) {
+          showToast('error', '서버 오류', res.status + ' — ' + url);
+        } else if (res.status === 401) {
+          showToast('warning', '인증 필요', '토큰이 만료되었거나 유효하지 않습니다');
+        }
+        return res;
+      }
+
+      // WS 상태 표시
+      function setWsStatus(state) {
+        var dot = document.getElementById('wsDot');
+        var label = document.getElementById('wsLabel');
+        dot.className = 'ws-dot';
+        if (state === 'connected') {
+          dot.classList.add('connected');
+          label.textContent = '실시간';
+        } else if (state === 'connecting') {
+          dot.classList.add('connecting');
+          label.textContent = '연결 중';
+        } else {
+          label.textContent = '끊김';
+        }
       }
 
       function connectWS() {
+        setWsStatus('connecting');
         const token = getToken();
         const wsUrl = token
           ? `${wsProto}//${location.host}?token=${encodeURIComponent(token)}`
           : `${wsProto}//${location.host}`;
         ws = new WebSocket(wsUrl);
-        ws.onopen = () => console.log('WS 연결');
+        ws.onopen = () => {
+          setWsStatus('connected');
+        };
         ws.onmessage = (e) => {
           const msg = JSON.parse(e.data);
           if (msg.type === 'ticker') updateTicker(msg.data);
           if (msg.type === 'botStatus') updateBotStatus(msg.data);
           if (msg.type === 'portfolio') updatePortfolio(msg.data);
         };
-        ws.onclose = () => setTimeout(connectWS, 3000);
+        ws.onclose = () => {
+          setWsStatus('disconnected');
+          setTimeout(connectWS, 3000);
+        };
       }
       connectWS();
 
@@ -1386,6 +1741,16 @@
         const pct = (tick.change * 100).toFixed(2);
         changeEl.textContent = `${pct > 0 ? '+' : ''}${pct}%`;
         changeEl.className = `card-sub ${pct >= 0 ? 'positive' : 'negative'}`;
+        // 추가 정보
+        const extra = document.getElementById('priceExtra');
+        if (extra && tick.high && tick.low) {
+          extra.innerHTML =
+            '<span>고: ' +
+            Number(tick.high).toLocaleString() +
+            '</span><span>저: ' +
+            Number(tick.low).toLocaleString() +
+            '</span>';
+        }
       }
 
       // 봇 상태 업데이트
@@ -1404,6 +1769,16 @@
         const posValue = status.position && currentPrice ? status.position.volume * currentPrice : 0;
         const total = capital + posValue;
         document.getElementById('totalAssets').textContent = Math.round(total).toLocaleString() + '원';
+        // 총 자산 추가 정보
+        const totalExtra = document.getElementById('totalAssetsExtra');
+        if (totalExtra) {
+          totalExtra.innerHTML =
+            '<span>현금: ' +
+            Math.round(capital).toLocaleString() +
+            '</span><span>포지션: ' +
+            Math.round(posValue).toLocaleString() +
+            '</span>';
+        }
 
         // 포지션 손익
         const pnlEl = document.getElementById('unrealizedPnl');
@@ -1414,6 +1789,10 @@
           pnlEl.textContent = `${pnl >= 0 ? '+' : ''}${Math.round(pnl).toLocaleString()}원`;
           pnlEl.className = `card-value ${pnl >= 0 ? 'positive' : 'negative'}`;
           posInfoEl.textContent = `진입가: ${status.position.entryPrice.toLocaleString()}`;
+          const posExtra = document.getElementById('positionExtra');
+          if (posExtra) {
+            posExtra.innerHTML = '<span>' + pnlPct + '%</span><span>수량: ' + status.position.volume + '</span>';
+          }
         } else {
           pnlEl.textContent = '-';
           pnlEl.className = 'card-value';
@@ -1459,6 +1838,7 @@
             .join('');
         } catch (e) {
           console.error('전략 로드 실패', e);
+          showToast('error', '전략 로드 실패', e.message);
         }
       }
 
@@ -1474,7 +1854,8 @@
           const trades = await res.json();
           const el = document.getElementById('tradeLog');
           if (!trades.length) {
-            el.innerHTML = '<div style="color:#8b949e;font-size:12px;">거래 내역 없음</div>';
+            el.innerHTML =
+              '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">거래 내역 없음</div><div class="empty-state-sub">봇이 거래를 시작하면 여기에 표시됩니다</div></div>';
             return;
           }
           el.innerHTML = trades
@@ -1501,7 +1882,7 @@
         const container = document.getElementById('chart');
         chart = LightweightCharts.createChart(container, {
           width: container.clientWidth,
-          height: 400,
+          height: container.clientHeight || 400,
           layout: { background: { color: '#161b22' }, textColor: '#8b949e' },
           grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
           timeScale: { timeVisible: true, borderColor: '#30363d' },
@@ -1550,11 +1931,12 @@
         const btn = document.getElementById('btnBacktest');
         const startDate = document.getElementById('btStartDate').value;
         const endDate = document.getElementById('btEndDate').value;
-        if (!startDate || !endDate) return alert('시작일과 종료일을 선택하세요');
-        if (startDate > endDate) return alert('시작일이 종료일보다 뒤입니다');
+        if (!startDate || !endDate) return showToast('warning', '날짜 필요', '시작일과 종료일을 선택하세요');
+        if (startDate > endDate) return showToast('warning', '날짜 오류', '시작일이 종료일보다 뒤입니다');
 
         btn.disabled = true;
         btn.textContent = '⏳ 실행 중...';
+        const loader = showLoading(document.querySelector('#tab-backtest .bt-container'));
 
         try {
           const body = {
@@ -1582,9 +1964,19 @@
 
           showBtResults(result, body);
           loadBtHistory();
+          showToast(
+            'success',
+            '백테스트 완료',
+            result.strategy +
+              ' — ' +
+              (result.performance?.totalReturn >= 0 ? '+' : '') +
+              result.performance?.totalReturn +
+              '%',
+          );
         } catch (e) {
-          alert('백테스트 실패: ' + e.message);
+          showToast('error', '백테스트 실패', e.message);
         } finally {
+          hideLoading(loader);
           btn.disabled = false;
           btn.textContent = '▶ 백테스트 실행';
         }
@@ -1629,7 +2021,7 @@
         ]
           .map(
             (c) =>
-              `<div class="card"><div class="card-label">${c.label}</div><div class="card-value ${c.cls}" style="font-size:18px">${c.value}</div></div>`,
+              `<div class="card"><div class="card-label">${c.label}</div><div class="card-value ${c.cls} card-value-lg">${c.value}</div></div>`,
           )
           .join('');
 
@@ -1782,7 +2174,8 @@
           const list = await res.json();
           const el = document.getElementById('btHistory');
           if (!list.length) {
-            el.innerHTML = '<div style="color:#8b949e;font-size:12px;padding:8px 0">결과 없음</div>';
+            el.innerHTML =
+              '<div class="empty-state"><div class="empty-state-icon">🧪</div><div class="empty-state-text">백테스트 결과 없음</div></div>';
             return;
           }
           el.innerHTML = list
@@ -1826,6 +2219,7 @@
         const btn = document.getElementById('btnReport');
         btn.disabled = true;
         btn.textContent = '⏳ 생성 중...';
+        const loader = showLoading(document.querySelector('.rp-container'));
         try {
           const body = {
             period: document.getElementById('rpPeriod').value,
@@ -1840,9 +2234,11 @@
           if (result.error) throw new Error(result.error);
           showReport(result);
           loadRpHistory();
+          showToast('success', '리포트 생성 완료', result.label || '');
         } catch (e) {
-          alert('리포트 생성 실패: ' + e.message);
+          showToast('error', '리포트 실패', e.message);
         } finally {
+          hideLoading(loader);
           btn.disabled = false;
           btn.textContent = '📋 리포트 생성';
         }
@@ -1881,7 +2277,7 @@
         ]
           .map(
             (c) =>
-              `<div class="card"><div class="card-label">${c.label}</div><div class="card-value ${c.cls}" style="font-size:16px">${c.value}</div></div>`,
+              `<div class="card"><div class="card-label">${c.label}</div><div class="card-value ${c.cls} card-value-sm">${c.value}</div></div>`,
           )
           .join('');
 
@@ -1897,7 +2293,7 @@
         if (r.equityCurve && r.equityCurve.length) {
           rpChart = LightweightCharts.createChart(eqContainer, {
             width: eqContainer.clientWidth,
-            height: 250,
+            height: eqContainer.clientHeight || 250,
             layout: { background: { color: '#161b22' }, textColor: '#8b949e' },
             grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
             timeScale: { borderColor: '#30363d' },
@@ -1919,7 +2315,7 @@
           window.addEventListener('resize', () => rpChart.applyOptions({ width: eqContainer.clientWidth }));
         } else {
           eqContainer.innerHTML =
-            '<div style="color:#8b949e;font-size:12px;padding:20px;text-align:center">해당 기간 거래 데이터 없음</div>';
+            '<div class="empty-state"><div class="empty-state-icon">📉</div><div class="empty-state-text">해당 기간 거래 데이터 없음</div></div>';
         }
 
         // 매매 내역
@@ -1929,17 +2325,17 @@
               .map((t, i) => {
                 const pnl = Math.round(t.pnl || 0);
                 const cls = pnl >= 0 ? 'positive' : 'negative';
-                return `<tr style="border-bottom:1px solid #21262d">
-                <td style="padding:6px">${i + 1}</td>
-                <td style="padding:6px">${(t.createdAt || t.exitTime || t.time || '').slice(0, 19)}</td>
-                <td style="padding:6px">${t.market || '-'}</td>
-                <td style="padding:6px">${t.side || t.type || '-'}</td>
-                <td style="padding:6px;text-align:right" class="${cls}">${pnl >= 0 ? '+' : ''}${pnl.toLocaleString()}원</td>
-                <td style="padding:6px;text-align:right">${Math.round(t.fee || 0).toLocaleString()}원</td>
+                return `<tr class="tbl-row-border">
+                <td class="tbl-cell">${i + 1}</td>
+                <td class="tbl-cell">${(t.createdAt || t.exitTime || t.time || '').slice(0, 19)}</td>
+                <td class="tbl-cell">${t.market || '-'}</td>
+                <td class="tbl-cell">${t.side || t.type || '-'}</td>
+                <td class="tbl-cell-r ${cls}">${pnl >= 0 ? '+' : ''}${pnl.toLocaleString()}원</td>
+                <td class="tbl-cell-r">${Math.round(t.fee || 0).toLocaleString()}원</td>
               </tr>`;
               })
               .join('')
-          : '<tr><td colspan="6" style="padding:12px;color:#8b949e;text-align:center">거래 내역 없음</td></tr>';
+          : '<tr><td colspan="6" class="tbl-empty">거래 내역 없음</td></tr>';
       }
 
       async function loadRpHistory() {
@@ -1948,7 +2344,8 @@
           const list = await res.json();
           const el = document.getElementById('rpHistory');
           if (!list.length) {
-            el.innerHTML = '<div style="color:#8b949e;font-size:12px;padding:8px 0">리포트 없음</div>';
+            el.innerHTML =
+              '<div class="empty-state"><div class="empty-state-icon">📁</div><div class="empty-state-text">리포트 없음</div></div>';
             return;
           }
           el.innerHTML =
@@ -1979,7 +2376,7 @@
           if (data.error) throw new Error(data.error);
           showReport({ ...data, file });
         } catch (e) {
-          alert('리포트 로드 실패: ' + e.message);
+          showToast('error', '리포트 로드 실패', e.message);
         }
       }
 
@@ -1990,10 +2387,11 @@
         const btn = document.getElementById('btnWalkForward');
         const startDate = document.getElementById('wfStartDate').value;
         const endDate = document.getElementById('wfEndDate').value;
-        if (!startDate || !endDate) return alert('시작일과 종료일을 선택하세요');
+        if (!startDate || !endDate) return showToast('warning', '날짜 필요', '시작일과 종료일을 선택하세요');
 
         btn.disabled = true;
         btn.textContent = '⏳ 최적화 중 (시간이 걸립니다)...';
+        const loader = showLoading(document.querySelector('#tab-walkforward .bt-container'));
 
         try {
           const body = {
@@ -2020,9 +2418,11 @@
           if (result.error) throw new Error(result.error);
 
           showWalkForwardResults(result);
+          showToast('success', '워크포워드 완료', result.analysis?.verdict || '');
         } catch (e) {
-          alert('워크포워드 실패: ' + e.message);
+          showToast('error', '워크포워드 실패', e.message);
         } finally {
+          hideLoading(loader);
           btn.disabled = false;
           btn.textContent = '🔬 워크포워드 검증 실행';
         }
@@ -2036,9 +2436,9 @@
         const sumEl = document.getElementById('wfSummary');
         sumEl.style.display = 'block';
         sumEl.innerHTML = `
-          <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:16px">
+          <div class="wf-result-block">
             <h3 style="color:#58a6ff;margin:0 0 12px 0;font-size:15px">🔬 워크포워드 검증 결과 — ${r.strategy}</h3>
-            <div style="background:${a.verdict.includes('✅') ? '#0d2818' : '#2d1014'};border-radius:6px;padding:12px;margin-bottom:12px;font-size:14px;color:#c9d1d9">
+            <div class="${a.verdict.includes('✅') ? 'wf-verdict-pass' : 'wf-verdict-fail'}">
               <strong>판정:</strong> ${a.verdict}
             </div>
             <div class="bt-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
@@ -2073,7 +2473,7 @@
               ]
                 .map(
                   (c) =>
-                    `<div class="card"><div class="card-label">${c.l}</div><div class="card-value ${c.c}" style="font-size:16px">${c.v}</div></div>`,
+                    `<div class="card"><div class="card-label">${c.l}</div><div class="card-value ${c.c} card-value-sm">${c.v}</div></div>`,
                 )
                 .join('')}
             </div>
@@ -2083,40 +2483,40 @@
         const detEl = document.getElementById('wfWindowDetails');
         detEl.style.display = 'block';
         detEl.innerHTML = `
-          <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:16px">
+          <div class="wf-result-block">
             <h3 style="color:#8b949e;font-size:14px;margin:0 0 12px 0">📊 윈도우별 상세</h3>
             <div style="overflow-x:auto">
               <table style="width:100%;font-size:12px;border-collapse:collapse;color:#c9d1d9">
-                <thead><tr style="color:#8b949e;border-bottom:1px solid #30363d">
-                  <th style="padding:6px;text-align:left">윈도우</th>
-                  <th style="padding:6px">훈련 기간</th>
-                  <th style="padding:6px">IS 수익률</th>
-                  <th style="padding:6px">IS 승률</th>
-                  <th style="padding:6px">검증 기간</th>
-                  <th style="padding:6px">OOS 수익률</th>
-                  <th style="padding:6px">OOS MDD</th>
-                  <th style="padding:6px">OOS 승률</th>
-                  <th style="padding:6px">OOS PF</th>
-                  <th style="padding:6px">거래수</th>
-                  <th style="padding:6px">최적 SL/TP/TS</th>
+                <thead><tr class="tbl-header">
+                  <th class="tbl-cell">윈도우</th>
+                  <th class="tbl-cell">훈련 기간</th>
+                  <th class="tbl-cell">IS 수익률</th>
+                  <th class="tbl-cell">IS 승률</th>
+                  <th class="tbl-cell">검증 기간</th>
+                  <th class="tbl-cell">OOS 수익률</th>
+                  <th class="tbl-cell">OOS MDD</th>
+                  <th class="tbl-cell">OOS 승률</th>
+                  <th class="tbl-cell">OOS PF</th>
+                  <th class="tbl-cell">거래수</th>
+                  <th class="tbl-cell">최적 SL/TP/TS</th>
                 </tr></thead>
                 <tbody>
                   ${r.windowDetails
                     .map((w) => {
                       const e = w.bestParams.engine;
                       const ts = (s) => (s ? new Date(s).toLocaleDateString('ko') : '-');
-                      return `<tr style="border-bottom:1px solid #21262d">
-                      <td style="padding:6px;text-align:center">#${w.window}</td>
-                      <td style="padding:6px;text-align:center;font-size:11px">${ts(w.period.train.start)}~${ts(w.period.train.end)}</td>
-                      <td style="padding:6px;text-align:center;color:${w.train.totalReturn >= 0 ? '#3fb950' : '#f85149'}">${w.train.totalReturn >= 0 ? '+' : ''}${w.train.totalReturn}%</td>
-                      <td style="padding:6px;text-align:center">${w.train.winRate}%</td>
-                      <td style="padding:6px;text-align:center;font-size:11px">${ts(w.period.test.start)}~${ts(w.period.test.end)}</td>
-                      <td style="padding:6px;text-align:center;font-weight:bold;color:${w.test.totalReturn >= 0 ? '#3fb950' : '#f85149'}">${w.test.totalReturn >= 0 ? '+' : ''}${w.test.totalReturn}%</td>
-                      <td style="padding:6px;text-align:center;color:#f85149">-${Math.abs(w.test.maxDrawdown)}%</td>
-                      <td style="padding:6px;text-align:center">${w.test.winRate}%</td>
-                      <td style="padding:6px;text-align:center">${w.test.profitFactor}</td>
-                      <td style="padding:6px;text-align:center">${w.test.trades}</td>
-                      <td style="padding:6px;text-align:center;font-size:11px">${e.stopLossATR || '-'}/${e.takeProfitATR || '-'}/${e.trailingStopATR || '-'}</td>
+                      return `<tr class="tbl-row-border">
+                      <td class="tbl-cell-c">#${w.window}</td>
+                      <td class="tbl-cell-c text-sm">${ts(w.period.train.start)}~${ts(w.period.train.end)}</td>
+                      <td class="tbl-cell-c ${w.train.totalReturn >= 0 ? 'positive' : 'negative'}">${w.train.totalReturn >= 0 ? '+' : ''}${w.train.totalReturn}%</td>
+                      <td class="tbl-cell-c">${w.train.winRate}%</td>
+                      <td class="tbl-cell-c text-sm">${ts(w.period.test.start)}~${ts(w.period.test.end)}</td>
+                      <td class="tbl-cell-c ${w.test.totalReturn >= 0 ? 'positive' : 'negative'}" style="font-weight:bold">${w.test.totalReturn >= 0 ? '+' : ''}${w.test.totalReturn}%</td>
+                      <td class="tbl-cell-c negative">-${Math.abs(w.test.maxDrawdown)}%</td>
+                      <td class="tbl-cell-c">${w.test.winRate}%</td>
+                      <td class="tbl-cell-c">${w.test.profitFactor}</td>
+                      <td class="tbl-cell-c">${w.test.trades}</td>
+                      <td class="tbl-cell-c text-sm">${e.stopLossATR || '-'}/${e.takeProfitATR || '-'}/${e.trailingStopATR || '-'}</td>
                     </tr>`;
                     })
                     .join('')}
@@ -2162,22 +2562,26 @@
       function renderBotTable(bots) {
         const tbody = document.getElementById('pfBotTable');
         if (!tbody) return;
+        if (!bots.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="tbl-empty">봇이 없습니다. 위에서 추가하세요.</td></tr>';
+          return;
+        }
         tbody.innerHTML = bots
           .map(
             (b) => `
-          <tr style="border-bottom:1px solid #21262d">
-            <td style="padding:6px">${b.market}</td>
-            <td style="padding:6px">${b.strategy || '-'}</td>
-            <td style="padding:6px;text-align:right">${Math.round(b.capital || 0).toLocaleString()}</td>
-            <td style="padding:6px;text-align:right">${b.tradeCount || 0}</td>
-            <td style="padding:6px;text-align:center">${b.running ? '🟢' : '🔴'}</td>
-            <td style="padding:6px;text-align:center">
+          <tr class="tbl-row-border">
+            <td class="tbl-cell">${b.market}</td>
+            <td class="tbl-cell">${b.strategy || '-'}</td>
+            <td class="tbl-cell-r">${Math.round(b.capital || 0).toLocaleString()}</td>
+            <td class="tbl-cell-r">${b.tradeCount || 0}</td>
+            <td class="tbl-cell-c">${b.running ? '🟢' : '🔴'}</td>
+            <td class="tbl-cell-c">
               <button onclick="${b.running ? `stopSingleBot('${b.market}')` : `startSingleBot('${b.market}')`}"
-                style="font-size:11px;padding:2px 8px;cursor:pointer;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:4px">
+                class="text-sm" style="padding:2px 8px;cursor:pointer;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:4px">
                 ${b.running ? '정지' : '시작'}
               </button>
               <button onclick="removeBot('${b.market}')"
-                style="font-size:11px;padding:2px 8px;cursor:pointer;background:#f8514922;color:#f85149;border:1px solid #f8514944;border-radius:4px">삭제</button>
+                class="text-sm" style="padding:2px 8px;cursor:pointer;background:#f8514922;color:#f85149;border:1px solid #f8514944;border-radius:4px">삭제</button>
             </td>
           </tr>`,
           )
@@ -2205,8 +2609,9 @@
             body: JSON.stringify({ market, strategyName, unit }),
           });
           loadPortfolio();
+          showToast('success', '봇 추가', market + ' ' + strategyName);
         } catch (e) {
-          console.error('봇 추가 실패', e);
+          showToast('error', '봇 추가 실패', e.message);
         }
       }
 
@@ -2215,8 +2620,9 @@
         try {
           await apiFetch('/api/bots/' + encodeURIComponent(market), { method: 'DELETE' });
           loadPortfolio();
+          showToast('info', '봇 삭제', market);
         } catch (e) {
-          console.error('봇 삭제 실패', e);
+          showToast('error', '봇 삭제 실패', e.message);
         }
       }
 
@@ -2316,7 +2722,7 @@
         if (!container || pnlChart) return;
         pnlChart = LightweightCharts.createChart(container, {
           width: container.clientWidth || 700,
-          height: 220,
+          height: container.clientHeight || 220,
           layout: { background: { color: 'transparent' }, textColor: '#8b949e' },
           grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
           rightPriceScale: { borderColor: '#30363d' },
