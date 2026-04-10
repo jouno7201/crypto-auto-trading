@@ -222,6 +222,25 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
+// Graceful shutdown (PM2, Docker, Ctrl+C)
+function gracefulShutdown(signal) {
+  log.info({ signal }, '종료 시그널 수신 — Graceful Shutdown');
+  if (bot.running) {
+    bot.stop(); // 상태 저장 + 포지션 보호
+  }
+  if (tickerWs) {
+    try { tickerWs.close(); } catch (_) { /* ignore */ }
+  }
+  server.close(() => {
+    log.info('서버 종료 완료');
+    process.exit(0);
+  });
+  // 10초 강제 종료 안전장치
+  setTimeout(() => process.exit(1), 10000);
+}
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
 if (process.env.NODE_ENV !== 'test') {
   server.listen(PORT, () => {
     log.info({ port: PORT }, '서버 실행 중');
