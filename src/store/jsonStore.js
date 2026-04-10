@@ -1,7 +1,8 @@
 /**
- * JSON 파일 기반 데이터 저장소
- * - 모든 데이터는 data/ 폴더에 JSON 파일로 관리
- * - Phase 3 이후 필요 시 SQLite/PostgreSQL로 전환 가능
+ * 하이브리드 데이터 저장소
+ * - trades.json, orders.json → SQLite (인덱스 기반 쿼리, 페이지네이션)
+ * - 나머지 (config, backtest, candles) → JSON 파일 유지
+ * - 기존 API 100% 호환
  */
 
 const fs = require('fs');
@@ -20,47 +21,61 @@ DIRS.forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-/**
- * JSON 파일 읽기 (없으면 기본값 반환)
- */
-function load(filename, defaultValue = []) {
+// SQLite for structured data
+let sqlite = null;
+try {
+  sqlite = require('./sqliteStore');
+} catch (e) {
+  // SQLite not available — pure JSON fallback
+}
+
+// Files that use SQLite when available
+const SQLITE_FILES = new Set(['trades.json', 'orders.json']);
+
+function useSqlite(filename) {
+  return sqlite && SQLITE_FILES.has(filename);
+}
+
+// === JSON file helpers ===
+function jsonLoad(filename, defaultValue = []) {
   const filePath = path.join(DATA_DIR, filename);
   if (!fs.existsSync(filePath)) return defaultValue;
   const raw = fs.readFileSync(filePath, 'utf-8');
   return JSON.parse(raw);
 }
 
-/**
- * JSON 파일 쓰기
- */
-function save(filename, data) {
+function jsonSave(filename, data) {
   const filePath = path.join(DATA_DIR, filename);
   const dir = path.dirname(filePath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-/**
- * 배열 JSON 파일에 항목 추가 (append)
- */
+// === Public API (backward compatible) ===
+
+function load(filename, defaultValue = []) {
+  if (useSqlite(filename)) return sqlite.load(filename, defaultValue);
+  return jsonLoad(filename, defaultValue);
+}
+
+function save(filename, data) {
+  if (useSqlite(filename)) return sqlite.save(filename, data);
+  return jsonSave(filename, data);
+}
+
 function append(filename, item) {
-  const data = load(filename, []);
+  if (useSqlite(filename)) return sqlite.append(filename, item);
+  const data = jsonLoad(filename, []);
   data.push({ ...item, createdAt: new Date().toISOString() });
-  save(filename, data);
+  jsonSave(filename, data);
   return data;
 }
 
-/**
- * 배열에서 조건에 맞는 항목 찾기
- */
 function find(filename, predicate) {
   const data = load(filename, []);
   return data.filter(predicate);
 }
 
-/**
- * 배열에서 항목 업데이트 (id 기반)
- */
 function update(filename, id, updates) {
   const data = load(filename, []);
   const idx = data.findIndex((item) => item.id === id);
@@ -70,4 +85,36 @@ function update(filename, id, updates) {
   return data[idx];
 }
 
-module.exports = { load, save, append, find, update, DATA_DIR };
+// === Extended API (SQLite only) ===
+function queryTrades(opts) {
+  if (sqlite) return sqlite.queryTrades(opts);
+  // Fallback: in-memory filtering
+  let trades = jsonLoad('trades.json', []);
+  if (opts.market) trades = trades.filter(t => t.market === opts.market);
+  if (opts.type) trades = trades.filter(t => t.type === opts.type);
+  const total = trades.length;
+  const offset = opts.offset || 0;
+  const limit = opts.limit || 50;
+  return { rows: trades.slice(offset, offset + limit), total, limit, offset };
+}
+
+function queryOrders(opts) {
+  if (sqlite) return sqlite.queryOrders(opts);
+  let orders = jsonLoad('orders.json', []);
+  if (opts.market) orders = orders.filter(o => o.market === opts.market);
+  const total = orders.length;
+  const offset = opts.offset || 0;
+  const limit = opts.limit || 50;
+  return { rows: orders.slice(offset, offset + limit), total, limit, offset };
+}
+
+function tradeStats(market) {
+  if (sqlite) return sqlite.tradeStats(market);
+  return null;
+}
+
+function close() {
+  if (sqlite) sqlite.close();
+}
+
+module.exports = { load, save, append, find, update, queryTrades, queryOrders, tradeStats, close, DATA_DIR };

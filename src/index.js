@@ -289,6 +289,8 @@ function gracefulShutdown(signal) {
     bot.stop();
   }
   botManager.stopAll();
+  // Close DB connection
+  try { require('./store/jsonStore').close(); } catch (_) { /* ignore */ }
   if (tickerWs) {
     try {
       tickerWs.close();
