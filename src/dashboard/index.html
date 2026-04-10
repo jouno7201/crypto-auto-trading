@@ -436,6 +436,7 @@
     <!-- 탭 네비게이션 -->
     <div class="tabs">
       <div class="tab active" onclick="switchTab('trading')">📈 트레이딩</div>
+      <div class="tab" onclick="switchTab('portfolio')">🏦 포트폴리오</div>
       <div class="tab" onclick="switchTab('backtest')">🧪 백테스트</div>
       <div class="tab" onclick="switchTab('walkforward')">🔬 워크포워드</div>
       <div class="tab" onclick="switchTab('reports')">📋 리포트</div>
@@ -560,6 +561,104 @@
       </div>
     </div>
     <!-- /tab-trading -->
+
+    <!-- 포트폴리오 탭 -->
+    <div id="tab-portfolio" class="tab-content">
+      <div style="padding: 16px">
+        <!-- 포트폴리오 요약 카드 -->
+        <div class="grid" style="margin-bottom: 16px">
+          <div class="card">
+            <div class="card-label">총 자산</div>
+            <div class="card-value" id="pfTotalAssets">-</div>
+          </div>
+          <div class="card">
+            <div class="card-label">활성 봇</div>
+            <div class="card-value" id="pfActiveBots">0</div>
+          </div>
+          <div class="card">
+            <div class="card-label">총 거래횟수</div>
+            <div class="card-value" id="pfTotalTrades">0</div>
+          </div>
+          <div class="card">
+            <div class="card-label">포지션 가치</div>
+            <div class="card-value" id="pfPositionValue">-</div>
+          </div>
+        </div>
+
+        <!-- 멀티봇 관리 -->
+        <div class="panel" style="margin-bottom: 16px">
+          <h3 style="margin-bottom: 12px">🤖 멀티봇 관리</h3>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap">
+            <button class="btn-gen" onclick="startAllBots()">▶ 전체 시작</button>
+            <button class="btn-gen" style="background:#f8514933;color:#f85149" onclick="stopAllBots()">⏹ 전체 정지</button>
+          </div>
+          <div style="overflow-x: auto">
+            <table style="width:100%;font-size:13px;border-collapse:collapse">
+              <thead>
+                <tr style="color:#8b949e;border-bottom:1px solid #30363d">
+                  <th style="padding:6px;text-align:left">마켓</th>
+                  <th style="padding:6px;text-align:left">전략</th>
+                  <th style="padding:6px;text-align:right">자산</th>
+                  <th style="padding:6px;text-align:right">거래수</th>
+                  <th style="padding:6px;text-align:center">상태</th>
+                  <th style="padding:6px;text-align:center">제어</th>
+                </tr>
+              </thead>
+              <tbody id="pfBotTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 봇 추가 폼 -->
+        <div class="panel" style="margin-bottom: 16px">
+          <h3 style="margin-bottom: 12px">➕ 봇 추가</h3>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: end">
+            <label>마켓
+              <select id="pfNewMarket">
+                <option value="KRW-BTC">KRW-BTC</option>
+                <option value="KRW-ETH">KRW-ETH</option>
+                <option value="KRW-XRP">KRW-XRP</option>
+                <option value="KRW-SOL">KRW-SOL</option>
+                <option value="KRW-DOGE">KRW-DOGE</option>
+                <option value="KRW-ADA">KRW-ADA</option>
+              </select>
+            </label>
+            <label>전략
+              <select id="pfNewStrategy">
+                <option value="ensemble">ensemble</option>
+                <option value="macd">macd</option>
+                <option value="mean-reversion">mean-reversion</option>
+                <option value="rsi">rsi</option>
+                <option value="bollinger">bollinger</option>
+                <option value="ma-cross">ma-cross</option>
+                <option value="triple-ema">triple-ema</option>
+                <option value="adaptive-momentum">adaptive-momentum</option>
+              </select>
+            </label>
+            <label>캔들 단위
+              <select id="pfNewUnit">
+                <option value="minutes/15">15분</option>
+                <option value="minutes/60">1시간</option>
+                <option value="minutes/240">4시간</option>
+                <option value="days">일봉</option>
+              </select>
+            </label>
+            <button class="btn-gen" onclick="addBot()">추가</button>
+          </div>
+        </div>
+
+        <!-- 분석 -->
+        <div class="panel">
+          <h3 style="margin-bottom: 12px">📊 마켓 분석</h3>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px">
+            <button class="btn-gen" onclick="runCorrelation()">상관관계 분석</button>
+            <button class="btn-gen" onclick="runStrategyMatch()">전략 매칭</button>
+          </div>
+          <pre id="pfAnalysisResult" style="background:#0d1117;padding:12px;border-radius:6px;font-size:12px;max-height:400px;overflow:auto;white-space:pre-wrap;display:none"></pre>
+        </div>
+      </div>
+    </div>
+    <!-- /tab-portfolio -->
 
     <!-- 백테스트 탭 -->
     <div id="tab-backtest" class="tab-content">
@@ -842,6 +941,7 @@
         document.getElementById('tab-' + name).classList.add('active');
         if (name === 'backtest') loadBtHistory();
         if (name === 'reports') loadRpHistory();
+        if (name === 'portfolio') loadPortfolio();
       }
 
       // WebSocket 연결
@@ -876,6 +976,7 @@
           const msg = JSON.parse(e.data);
           if (msg.type === 'ticker') updateTicker(msg.data);
           if (msg.type === 'botStatus') updateBotStatus(msg.data);
+          if (msg.type === 'portfolio') updatePortfolio(msg.data);
         };
         ws.onclose = () => setTimeout(connectWS, 3000);
       }
@@ -1662,6 +1763,125 @@
         r.chainedEquity.forEach((ce, i) => eqData.push({ time: i + 1, value: Math.round(ce.end) }));
         lineSeries.setData(eqData.map((d, i) => ({ time: i, value: d.value })));
         wfChart.timeScale().fitContent();
+      }
+
+      // ===== 포트폴리오 관리 =====
+      function updatePortfolio(data) {
+        if (!data) return;
+        document.getElementById('pfTotalAssets').textContent = Math.round(data.totalAssets || 0).toLocaleString() + '원';
+        document.getElementById('pfActiveBots').textContent = data.runningBots + '/' + data.totalBots;
+        document.getElementById('pfTotalTrades').textContent = data.totalTrades || 0;
+        document.getElementById('pfPositionValue').textContent = Math.round(data.totalPositionValue || 0).toLocaleString() + '원';
+        if (data.bots) renderBotTable(data.bots);
+      }
+
+      function renderBotTable(bots) {
+        const tbody = document.getElementById('pfBotTable');
+        if (!tbody) return;
+        tbody.innerHTML = bots.map(b => `
+          <tr style="border-bottom:1px solid #21262d">
+            <td style="padding:6px">${b.market}</td>
+            <td style="padding:6px">${b.strategy || '-'}</td>
+            <td style="padding:6px;text-align:right">${Math.round(b.capital || 0).toLocaleString()}</td>
+            <td style="padding:6px;text-align:right">${b.tradeCount || 0}</td>
+            <td style="padding:6px;text-align:center">${b.running ? '🟢' : '🔴'}</td>
+            <td style="padding:6px;text-align:center">
+              <button onclick="${b.running ? `stopSingleBot('${b.market}')` : `startSingleBot('${b.market}')`}"
+                style="font-size:11px;padding:2px 8px;cursor:pointer;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:4px">
+                ${b.running ? '정지' : '시작'}
+              </button>
+              <button onclick="removeBot('${b.market}')"
+                style="font-size:11px;padding:2px 8px;cursor:pointer;background:#f8514922;color:#f85149;border:1px solid #f8514944;border-radius:4px">삭제</button>
+            </td>
+          </tr>`).join('');
+      }
+
+      async function loadPortfolio() {
+        try {
+          const res = await apiFetch('/api/portfolio');
+          const data = await res.json();
+          updatePortfolio(data);
+        } catch (e) { console.error('포트폴리오 로드 실패', e); }
+      }
+
+      async function addBot() {
+        const market = document.getElementById('pfNewMarket').value;
+        const strategyName = document.getElementById('pfNewStrategy').value;
+        const unit = document.getElementById('pfNewUnit').value;
+        try {
+          await apiFetch('/api/bots/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ market, strategyName, unit })
+          });
+          loadPortfolio();
+        } catch (e) { console.error('봇 추가 실패', e); }
+      }
+
+      async function removeBot(market) {
+        if (!confirm(market + ' 봇을 삭제하시겠습니까?')) return;
+        try {
+          await apiFetch('/api/bots/' + encodeURIComponent(market), { method: 'DELETE' });
+          loadPortfolio();
+        } catch (e) { console.error('봇 삭제 실패', e); }
+      }
+
+      async function startSingleBot(market) {
+        try {
+          await apiFetch('/api/bots/' + encodeURIComponent(market) + '/start', { method: 'POST' });
+          loadPortfolio();
+        } catch (e) { console.error('봇 시작 실패', e); }
+      }
+
+      async function stopSingleBot(market) {
+        try {
+          await apiFetch('/api/bots/' + encodeURIComponent(market) + '/stop', { method: 'POST' });
+          loadPortfolio();
+        } catch (e) { console.error('봇 정지 실패', e); }
+      }
+
+      async function startAllBots() {
+        try {
+          await apiFetch('/api/bots/start-all', { method: 'POST' });
+          loadPortfolio();
+        } catch (e) { console.error(e); }
+      }
+
+      async function stopAllBots() {
+        try {
+          await apiFetch('/api/bots/stop-all', { method: 'POST' });
+          loadPortfolio();
+        } catch (e) { console.error(e); }
+      }
+
+      async function runCorrelation() {
+        const el = document.getElementById('pfAnalysisResult');
+        el.style.display = 'block';
+        el.textContent = '분석 중...';
+        try {
+          const res = await apiFetch('/api/analysis/correlation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markets: ['KRW-BTC','KRW-ETH','KRW-XRP','KRW-SOL','KRW-DOGE'] })
+          });
+          const data = await res.json();
+          el.textContent = JSON.stringify(data, null, 2);
+        } catch (e) { el.textContent = '오류: ' + e.message; }
+      }
+
+      async function runStrategyMatch() {
+        const el = document.getElementById('pfAnalysisResult');
+        el.style.display = 'block';
+        el.textContent = '전략 매칭 중...';
+        try {
+          const res = await apiFetch('/api/analysis/match-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markets: ['KRW-BTC','KRW-ETH','KRW-XRP'] })
+          });
+          const data = await res.json();
+          el.textContent = JSON.stringify(data, null, 2);
+        } catch (e) { el.textContent = '오류: ' + e.message; }
       }
     </script>
   </body>

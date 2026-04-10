@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const TradingBot = require('./engine/tradingBot');
+const BotManager = require('./engine/botManager');
 const { streamUpbitTicker } = require('./engine/dataCollector');
 const { authenticate, authenticateWs, generateToken } = require('./middleware/auth');
 const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandler');
@@ -130,7 +131,7 @@ app.post('/api/notify/test', authenticate, async (req, res) => {
   }
 });
 
-// 트레이딩 봇 인스턴스 생성
+// 트레이딩 봇 인스턴스 생성 (레거시 단일 봇)
 const bot = new TradingBot({
   market: process.env.BOT_MARKET || 'KRW-BTC',
   strategyName: process.env.BOT_STRATEGY || 'ma-cross',
@@ -139,20 +140,50 @@ const bot = new TradingBot({
   initialCapital: parseInt(process.env.BOT_CAPITAL || '1000000', 10),
 });
 
+// 멀티마켓 봇 매니저
+const botManager = new BotManager({
+  intervalMs: parseInt(process.env.BOT_INTERVAL || '60000', 10),
+  initialCapital: parseInt(process.env.BOT_CAPITAL || '1000000', 10),
+});
+
+// 기본 봇 매니저에 디폴트 마켓 등록 (저장된 구성이 없을 때만)
+if (botManager.bots.size === 0) {
+  botManager.addBot(process.env.BOT_MARKET || 'KRW-BTC', {
+    strategyName: process.env.BOT_STRATEGY || 'ma-cross',
+    unit: process.env.BOT_UNIT || '60',
+  });
+}
+
 // 봇 인스턴스를 라우트에 전달
 require('./routes/assets').setBotInstance(bot);
+require('./routes/assets').setBotManager(botManager);
 
-// WebSocket: 실시간 시세 브로드캐스트
-const broadcastMarkets = (process.env.BOT_MARKET || 'KRW-BTC').split(',');
+// WebSocket: 실시간 시세 브로드캐스트 (멀티마켓 지원)
+let broadcastMarkets = (process.env.BOT_MARKET || 'KRW-BTC').split(',');
 let tickerWs = null;
 
+function updateBroadcastMarkets() {
+  const managerMarkets = botManager.getMarkets();
+  if (managerMarkets.length > 0) {
+    broadcastMarkets = [...new Set([...managerMarkets])];
+  }
+}
+
 function startTickerStream() {
+  updateBroadcastMarkets();
   tickerWs = streamUpbitTicker(broadcastMarkets, (tick) => {
     const msg = JSON.stringify({ type: 'ticker', data: tick });
     wss.clients.forEach((client) => {
       if (client.readyState === 1) client.send(msg);
     });
   });
+}
+
+function restartTickerStream() {
+  if (tickerWs) {
+    try { tickerWs.close(); } catch (_) { /* ignore */ }
+  }
+  startTickerStream();
 }
 
 wss.on('connection', (ws, req) => {
@@ -165,8 +196,9 @@ wss.on('connection', (ws, req) => {
 
   log.info('클라이언트 WebSocket 연결');
 
-  // 연결 시 현재 봇 상태 전송
+  // 연결 시 현재 봇 상태 전송 (레거시 + 멀티봇)
   ws.send(JSON.stringify({ type: 'botStatus', data: bot.getStatus() }));
+  ws.send(JSON.stringify({ type: 'portfolio', data: botManager.getPortfolioStatus() }));
 
   ws.on('message', (raw) => {
     try {
@@ -182,16 +214,40 @@ wss.on('connection', (ws, req) => {
       }
       if (msg.type === 'configBot') {
         const status = bot.configure(msg.data || {});
-        // 마켓 변경 시 실시간 시세 스트림도 교체
         if (msg.data?.market && tickerWs) {
-          tickerWs.close();
-          broadcastMarkets.length = 0;
-          broadcastMarkets.push(msg.data.market);
-          startTickerStream();
+          restartTickerStream();
         }
         wss.clients.forEach((client) => {
           if (client.readyState === 1) client.send(JSON.stringify({ type: 'botStatus', data: status }));
         });
+      }
+      // 멀티봇 명령
+      if (msg.type === 'addBot') {
+        botManager.addBot(msg.data.market, msg.data);
+        restartTickerStream();
+        wss.clients.forEach((client) => {
+          if (client.readyState === 1) {
+            client.send(JSON.stringify({ type: 'portfolio', data: botManager.getPortfolioStatus() }));
+          }
+        });
+      }
+      if (msg.type === 'removeBot') {
+        botManager.removeBot(msg.data.market);
+        restartTickerStream();
+        wss.clients.forEach((client) => {
+          if (client.readyState === 1) {
+            client.send(JSON.stringify({ type: 'portfolio', data: botManager.getPortfolioStatus() }));
+          }
+        });
+      }
+      if (msg.type === 'startAllBots') {
+        botManager.startAll();
+      }
+      if (msg.type === 'stopAllBots') {
+        botManager.stopAll();
+      }
+      if (msg.type === 'getPortfolio') {
+        ws.send(JSON.stringify({ type: 'portfolio', data: botManager.getPortfolioStatus() }));
       }
     } catch (e) {
       /* ignore */
@@ -201,11 +257,15 @@ wss.on('connection', (ws, req) => {
   ws.on('close', () => log.debug('클라이언트 WebSocket 연결 해제'));
 });
 
-// 봇 상태 주기적 브로드캐스트 (5초)
+// 봇 상태 주기적 브로드캐스트 (5초) — 레거시 + 멀티봇
 setInterval(() => {
-  const msg = JSON.stringify({ type: 'botStatus', data: bot.getStatus() });
+  const botMsg = JSON.stringify({ type: 'botStatus', data: bot.getStatus() });
+  const portfolioMsg = JSON.stringify({ type: 'portfolio', data: botManager.getPortfolioStatus() });
   wss.clients.forEach((client) => {
-    if (client.readyState === 1) client.send(msg);
+    if (client.readyState === 1) {
+      client.send(botMsg);
+      client.send(portfolioMsg);
+    }
   });
 }, 5000);
 
@@ -226,8 +286,9 @@ process.on('uncaughtException', (err) => {
 function gracefulShutdown(signal) {
   log.info({ signal }, '종료 시그널 수신 — Graceful Shutdown');
   if (bot.running) {
-    bot.stop(); // 상태 저장 + 포지션 보호
+    bot.stop();
   }
+  botManager.stopAll();
   if (tickerWs) {
     try {
       tickerWs.close();
@@ -252,4 +313,4 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-module.exports = { app, server, wss, bot };
+module.exports = { app, server, wss, bot, botManager };

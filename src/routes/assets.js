@@ -1,5 +1,5 @@
 /**
- * API 라우트 - 자산 & 봇 상태
+ * API 라우트 - 자산 & 봇 상태 (멀티마켓 지원)
  */
 const express = require('express');
 const router = express.Router();
@@ -7,9 +7,14 @@ const store = require('../store/jsonStore');
 const { upbit } = require('../api');
 
 let botInstance = null;
+let botManagerInstance = null;
 
 function setBotInstance(bot) {
   botInstance = bot;
+}
+
+function setBotManager(manager) {
+  botManagerInstance = manager;
 }
 
 // 자산 현황
@@ -230,5 +235,144 @@ async function getCurrentPrice(market) {
   }
 }
 
+// ===== 멀티마켓 봇 관리 API =====
+
+// 포트폴리오 전체 상태
+router.get('/portfolio', (req, res) => {
+  if (!botManagerInstance) return res.json({ error: '멀티봇 매니저 미설정' });
+  res.json(botManagerInstance.getPortfolioStatus());
+});
+
+// 등록된 전체 봇 목록
+router.get('/bots', (req, res) => {
+  if (!botManagerInstance) return res.json({ bots: [] });
+  res.json(botManagerInstance.getAllStatus());
+});
+
+// 봇 추가 (마켓별)
+router.post('/bots/add', (req, res) => {
+  if (!botManagerInstance) return res.status(400).json({ error: '멀티봇 매니저 미설정' });
+  const { market, strategyName, unit, initialCapital } = req.body;
+  if (!market) return res.status(400).json({ error: '마켓을 지정하세요' });
+  const bot = botManagerInstance.addBot(market, { strategyName, unit, initialCapital });
+  res.json(bot.getStatus());
+});
+
+// 봇 제거
+router.delete('/bots/:market', (req, res) => {
+  if (!botManagerInstance) return res.status(400).json({ error: '멀티봇 매니저 미설정' });
+  const removed = botManagerInstance.removeBot(req.params.market);
+  res.json({ removed, market: req.params.market });
+});
+
+// 특정 마켓 봇 상태
+router.get('/bots/:market', (req, res) => {
+  if (!botManagerInstance) return res.status(400).json({ error: '멀티봇 매니저 미설정' });
+  const bot = botManagerInstance.getBot(req.params.market);
+  if (!bot) return res.status(404).json({ error: '해당 마켓 봇 없음' });
+  res.json(bot.getStatus());
+});
+
+// 특정 마켓 봇 시작
+router.post('/bots/:market/start', (req, res) => {
+  if (!botManagerInstance) return res.status(400).json({ error: '멀티봇 매니저 미설정' });
+  const ok = botManagerInstance.startBot(req.params.market);
+  if (!ok) return res.status(404).json({ error: '해당 마켓 봇 없음' });
+  res.json({ status: 'started', market: req.params.market });
+});
+
+// 특정 마켓 봇 정지
+router.post('/bots/:market/stop', (req, res) => {
+  if (!botManagerInstance) return res.status(400).json({ error: '멀티봇 매니저 미설정' });
+  const ok = botManagerInstance.stopBot(req.params.market);
+  if (!ok) return res.status(404).json({ error: '해당 마켓 봇 없음' });
+  res.json({ status: 'stopped', market: req.params.market });
+});
+
+// 전체 봇 시작
+router.post('/bots/start-all', (req, res) => {
+  if (!botManagerInstance) return res.status(400).json({ error: '멀티봇 매니저 미설정' });
+  botManagerInstance.startAll();
+  res.json({ status: 'all-started', markets: botManagerInstance.getMarkets() });
+});
+
+// 전체 봇 정지
+router.post('/bots/stop-all', (req, res) => {
+  if (!botManagerInstance) return res.status(400).json({ error: '멀티봇 매니저 미설정' });
+  botManagerInstance.stopAll();
+  res.json({ status: 'all-stopped' });
+});
+
+// 특정 마켓 봇 설정 변경
+router.post('/bots/:market/configure', (req, res) => {
+  if (!botManagerInstance) return res.status(400).json({ error: '멀티봇 매니저 미설정' });
+  const { strategyName, strategyParams, unit } = req.body;
+  const status = botManagerInstance.configureBot(req.params.market, { strategyName, strategyParams, unit });
+  if (!status) return res.status(404).json({ error: '해당 마켓 봇 없음' });
+  res.json(status);
+});
+
+// ===== 마켓 분석 API =====
+
+// 마켓 간 상관관계 분석
+router.post('/analysis/correlation', async (req, res) => {
+  try {
+    const { markets, unit = '60', count = 500 } = req.body;
+    if (!markets || markets.length < 2) {
+      return res.status(400).json({ error: '2개 이상의 마켓을 지정하세요' });
+    }
+    const { calculateCorrelationMatrix } = require('../engine/correlationAnalyzer');
+    const result = await calculateCorrelationMatrix(markets, { unit, count });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 포트폴리오 추천
+router.post('/analysis/recommend-portfolio', async (req, res) => {
+  try {
+    const { markets, maxMarkets = 4, unit = '60', count = 500 } = req.body;
+    if (!markets || markets.length < 2) {
+      return res.status(400).json({ error: '2개 이상의 후보 마켓을 지정하세요' });
+    }
+    const { recommendPortfolio } = require('../engine/correlationAnalyzer');
+    const result = await recommendPortfolio(markets, { maxMarkets, unit, count });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 마켓별 최적 전략 매칭
+router.post('/analysis/match-strategy', async (req, res) => {
+  try {
+    const { market, unit = '60', count = 500 } = req.body;
+    if (!market) return res.status(400).json({ error: '마켓을 지정하세요' });
+    const { matchStrategiesForMarket } = require('../engine/strategyMatcher');
+    const result = await matchStrategiesForMarket(market, { unit, count });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 다수 마켓 전략 일괄 매칭
+router.post('/analysis/match-all', async (req, res) => {
+  try {
+    const { markets, unit = '60', count = 500 } = req.body;
+    if (!markets || markets.length === 0) {
+      return res.status(400).json({ error: '마켓 목록을 지정하세요' });
+    }
+    const { matchAllMarkets } = require('../engine/strategyMatcher');
+    const result = await matchAllMarkets(markets, { unit, count });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;
 module.exports.setBotInstance = setBotInstance;
+module.exports.setBotManager = setBotManager;
