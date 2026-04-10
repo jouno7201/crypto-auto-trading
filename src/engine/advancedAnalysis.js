@@ -75,16 +75,20 @@ function monteCarlo(opts = {}) {
     },
     drawdown: {
       mean: parseFloat((drawdowns.reduce((a, b) => a + b, 0) / drawdowns.length).toFixed(2)),
-      median: percentile(drawdowns.sort((a, b) => a - b), 50),
-      p95: percentile(drawdowns.sort((a, b) => a - b), 95),
+      median: percentile(
+        drawdowns.sort((a, b) => a - b),
+        50,
+      ),
+      p95: percentile(
+        drawdowns.sort((a, b) => a - b),
+        95,
+      ),
       max: Math.max(...drawdowns),
     },
     // 히스토그램 (10개 구간)
     histogram: buildHistogram(returns, 10),
     // 파산 확률 (자본 50% 이상 손실)
-    ruinProbability: parseFloat(
-      ((results.filter((r) => r.returnPct <= -50).length / simulations) * 100).toFixed(2),
-    ),
+    ruinProbability: parseFloat(((results.filter((r) => r.returnPct <= -50).length / simulations) * 100).toFixed(2)),
   };
 }
 
@@ -152,19 +156,17 @@ function advancedMetrics(opts = {}) {
   const dailyRf = riskFreeRate / 252;
   const excessReturns = dailyReturns.map((r) => r - dailyRf);
   const avgExcess = excessReturns.reduce((a, b) => a + b, 0) / tradingDays;
-  const stdReturn = Math.sqrt(
-    dailyReturns.reduce((a, r) => a + (r - avgReturn) ** 2, 0) / tradingDays,
-  );
+  const stdReturn = Math.sqrt(dailyReturns.reduce((a, r) => a + (r - avgReturn) ** 2, 0) / tradingDays);
   const sharpeRatio = stdReturn > 0 ? (avgExcess / stdReturn) * annualizeFactor : 0;
 
   // Sortino Ratio (하방 편차만 사용)
   const negativeReturns = dailyReturns.filter((r) => r < dailyRf);
-  const downsideDeviation = negativeReturns.length > 0
-    ? Math.sqrt(negativeReturns.reduce((a, r) => a + (r - dailyRf) ** 2, 0) / tradingDays)
-    : 0;
-  const sortinoRatio = downsideDeviation > 0
-    ? (avgExcess / downsideDeviation) * annualizeFactor
-    : avgExcess > 0 ? Infinity : 0;
+  const downsideDeviation =
+    negativeReturns.length > 0
+      ? Math.sqrt(negativeReturns.reduce((a, r) => a + (r - dailyRf) ** 2, 0) / tradingDays)
+      : 0;
+  const sortinoRatio =
+    downsideDeviation > 0 ? (avgExcess / downsideDeviation) * annualizeFactor : avgExcess > 0 ? Infinity : 0;
 
   // Max Drawdown & Calmar Ratio
   let peak = initialCapital;
@@ -177,9 +179,7 @@ function advancedMetrics(opts = {}) {
     if (dd > maxDD) maxDD = dd;
   });
 
-  const annualReturn = tradingDays > 0
-    ? ((Math.pow(cumCapital / initialCapital, 252 / tradingDays) - 1) * 100)
-    : 0;
+  const annualReturn = tradingDays > 0 ? (Math.pow(cumCapital / initialCapital, 252 / tradingDays) - 1) * 100 : 0;
   const calmarRatio = maxDD > 0 ? annualReturn / maxDD : annualReturn > 0 ? Infinity : 0;
 
   // Profit Factor
@@ -188,13 +188,10 @@ function advancedMetrics(opts = {}) {
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
 
   // 기대값 (Expectancy)
-  const avgWin = trades.filter((t) => t.pnl > 0).length > 0
-    ? grossProfit / trades.filter((t) => t.pnl > 0).length : 0;
-  const avgLoss = trades.filter((t) => t.pnl < 0).length > 0
-    ? grossLoss / trades.filter((t) => t.pnl < 0).length : 0;
-  const winRate = trades.length > 0
-    ? trades.filter((t) => t.pnl > 0).length / trades.length : 0;
-  const expectancy = (winRate * avgWin) - ((1 - winRate) * avgLoss);
+  const avgWin = trades.filter((t) => t.pnl > 0).length > 0 ? grossProfit / trades.filter((t) => t.pnl > 0).length : 0;
+  const avgLoss = trades.filter((t) => t.pnl < 0).length > 0 ? grossLoss / trades.filter((t) => t.pnl < 0).length : 0;
+  const winRate = trades.length > 0 ? trades.filter((t) => t.pnl > 0).length / trades.length : 0;
+  const expectancy = winRate * avgWin - (1 - winRate) * avgLoss;
 
   return {
     totalTrades: trades.length,

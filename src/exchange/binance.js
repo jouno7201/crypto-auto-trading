@@ -127,12 +127,17 @@ async function getBalance() {
 async function marketOrder(symbol, side, quantity) {
   if (!isEnabled()) throw new Error('Binance API keys not configured');
   log.info({ module: 'binance', symbol, side, quantity }, 'Binance 주문 실행');
-  return request('POST', '/api/v3/order', {
-    symbol,
-    side: side.toUpperCase(),
-    type: 'MARKET',
-    quantity,
-  }, true);
+  return request(
+    'POST',
+    '/api/v3/order',
+    {
+      symbol,
+      side: side.toUpperCase(),
+      type: 'MARKET',
+      quantity,
+    },
+    true,
+  );
 }
 
 /**
@@ -141,14 +146,19 @@ async function marketOrder(symbol, side, quantity) {
 async function limitOrder(symbol, side, quantity, price) {
   if (!isEnabled()) throw new Error('Binance API keys not configured');
   log.info({ module: 'binance', symbol, side, quantity, price }, 'Binance 지정가 주문');
-  return request('POST', '/api/v3/order', {
-    symbol,
-    side: side.toUpperCase(),
-    type: 'LIMIT',
-    timeInForce: 'GTC',
-    quantity,
-    price,
-  }, true);
+  return request(
+    'POST',
+    '/api/v3/order',
+    {
+      symbol,
+      side: side.toUpperCase(),
+      type: 'LIMIT',
+      timeInForce: 'GTC',
+      quantity,
+      price,
+    },
+    true,
+  );
 }
 
 /**

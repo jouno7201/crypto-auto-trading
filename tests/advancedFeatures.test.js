@@ -4,7 +4,9 @@
 
 // === Telegram ===
 describe('Telegram 알림', () => {
-  beforeEach(() => { jest.resetModules(); });
+  beforeEach(() => {
+    jest.resetModules();
+  });
 
   test('isEnabled — 토큰/챗ID 없으면 false', () => {
     delete process.env.TELEGRAM_BOT_TOKEN;
@@ -38,7 +40,9 @@ describe('Telegram 알림', () => {
 
 // === Binance ===
 describe('Binance 커넥터', () => {
-  beforeEach(() => { jest.resetModules(); });
+  beforeEach(() => {
+    jest.resetModules();
+  });
 
   test('isEnabled — API 키 없으면 false', () => {
     delete process.env.BINANCE_API_KEY;
@@ -69,7 +73,9 @@ describe('Binance 커넥터', () => {
 
 // === ML Bridge ===
 describe('ML Bridge', () => {
-  beforeEach(() => { jest.resetModules(); });
+  beforeEach(() => {
+    jest.resetModules();
+  });
 
   test('isAvailable — ML 서비스 없으면 false', async () => {
     const ml = require('../src/engine/mlBridge');

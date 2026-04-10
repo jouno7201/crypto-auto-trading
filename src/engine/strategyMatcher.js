@@ -81,18 +81,13 @@ async function matchStrategiesForMarket(market, options = {}) {
     const winScore = r.winRate / 100;
     const mddScore = 1 - Math.min(Math.abs(r.maxDrawdown) / 100, 1);
 
-    r.score = parseFloat(
-      (returnScore * 0.4 + sharpeScore * 0.3 + winScore * 0.2 + mddScore * 0.1).toFixed(4),
-    );
+    r.score = parseFloat((returnScore * 0.4 + sharpeScore * 0.3 + winScore * 0.2 + mddScore * 0.1).toFixed(4));
   }
 
   results.sort((a, b) => b.score - a.score);
 
   const best = results[0];
-  log.info(
-    { market, best: best.strategy, score: best.score, return: best.totalReturn },
-    '전략 매칭 완료',
-  );
+  log.info({ market, best: best.strategy, score: best.score, return: best.totalReturn }, '전략 매칭 완료');
 
   return {
     market,

@@ -62,7 +62,7 @@ for (const f of kvFiles) {
 // 4. Backtest results (subdirectory)
 const btDir = path.join(DATA_DIR, 'backtest-results');
 if (fs.existsSync(btDir)) {
-  const btFiles = fs.readdirSync(btDir).filter(f => f.endsWith('.json'));
+  const btFiles = fs.readdirSync(btDir).filter((f) => f.endsWith('.json'));
   console.log(`\nbacktest-results/: ${btFiles.length}개 파일`);
   for (const f of btFiles) {
     const data = loadJson(path.join('backtest-results', f));
@@ -77,7 +77,7 @@ if (fs.existsSync(btDir)) {
 // 5. Candle cache files
 const candleDir = path.join(DATA_DIR, 'candles');
 if (fs.existsSync(candleDir)) {
-  const candleFiles = fs.readdirSync(candleDir).filter(f => f.endsWith('.json'));
+  const candleFiles = fs.readdirSync(candleDir).filter((f) => f.endsWith('.json'));
   console.log(`\ncandles/: ${candleFiles.length}개 캐시 파일`);
   for (const f of candleFiles) {
     const data = loadJson(path.join('candles', f));

@@ -424,82 +424,287 @@
         .main {
           grid-template-columns: 1fr;
         }
-        .tabs { overflow-x: auto; }
-        .tab { padding: 10px 16px; font-size: 13px; white-space: nowrap; }
-        .bt-form { grid-template-columns: repeat(2, 1fr) !important; }
-        .wf-comparison { grid-template-columns: 1fr; }
+        .tabs {
+          overflow-x: auto;
+        }
+        .tab {
+          padding: 10px 16px;
+          font-size: 13px;
+          white-space: nowrap;
+        }
+        .bt-form {
+          grid-template-columns: repeat(2, 1fr) !important;
+        }
+        .wf-comparison {
+          grid-template-columns: 1fr;
+        }
       }
       /* PnL Equity Curve */
-      .equity-section { margin-top: 16px; }
-      .equity-section h3 { margin-bottom: 8px; font-size: 14px; }
-      #pnlEquityChart { height: 220px; border-radius: 6px; background: #161b22; }
+      .equity-section {
+        margin-top: 16px;
+      }
+      .equity-section h3 {
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      #pnlEquityChart {
+        height: 220px;
+        border-radius: 6px;
+        background: #161b22;
+      }
 
       /* Trade Detail Viewer */
-      .trade-detail-viewer { margin-top: 16px; }
-      .trade-filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: end; }
-      .trade-filters label { font-size: 12px; color: #8b949e; }
-      .trade-filters select, .trade-filters input { background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; padding: 4px 8px; font-size: 12px; }
-      .trade-detail-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-      .trade-detail-table th { padding: 8px 6px; text-align: left; color: #8b949e; border-bottom: 1px solid #30363d; position: sticky; top: 0; background: #161b22; }
-      .trade-detail-table td { padding: 6px; border-bottom: 1px solid #21262d; }
-      .trade-detail-wrap { max-height: 400px; overflow-y: auto; }
-      .trade-paging { display: flex; gap: 8px; margin-top: 8px; justify-content: center; align-items: center; font-size: 13px; }
-      .trade-paging button { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; padding: 4px 12px; cursor: pointer; }
-      .trade-paging button:disabled { opacity: 0.4; cursor: default; }
+      .trade-detail-viewer {
+        margin-top: 16px;
+      }
+      .trade-filters {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+      .trade-filters label {
+        font-size: 12px;
+        color: #8b949e;
+      }
+      .trade-filters select,
+      .trade-filters input {
+        background: #0d1117;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+      .trade-detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .trade-detail-table th {
+        padding: 8px 6px;
+        text-align: left;
+        color: #8b949e;
+        border-bottom: 1px solid #30363d;
+        position: sticky;
+        top: 0;
+        background: #161b22;
+      }
+      .trade-detail-table td {
+        padding: 6px;
+        border-bottom: 1px solid #21262d;
+      }
+      .trade-detail-wrap {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      .trade-paging {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        justify-content: center;
+        align-items: center;
+        font-size: 13px;
+      }
+      .trade-paging button {
+        background: #21262d;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        border-radius: 4px;
+        padding: 4px 12px;
+        cursor: pointer;
+      }
+      .trade-paging button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
 
       /* Strategy Param Editor */
-      .param-editor { margin-top: 16px; }
-      .param-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 8px; }
-      .param-item { display: flex; flex-direction: column; gap: 2px; }
-      .param-item label { font-size: 11px; color: #8b949e; }
-      .param-item input { background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; padding: 4px 8px; font-size: 12px; }
-      .param-actions { display: flex; gap: 8px; margin-top: 8px; }
+      .param-editor {
+        margin-top: 16px;
+      }
+      .param-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .param-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .param-item label {
+        font-size: 11px;
+        color: #8b949e;
+      }
+      .param-item input {
+        background: #0d1117;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+      .param-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
 
       /* Dark/Light mode */
-      body.light-mode { background: #f6f8fa; color: #24292f; }
-      body.light-mode .header { background: #ffffff; border-bottom-color: #d0d7de; }
-      body.light-mode .header h1 { color: #0969da; }
-      body.light-mode .tabs { background: #ffffff; border-bottom-color: #d0d7de; }
-      body.light-mode .tab { color: #57606a; }
-      body.light-mode .tab.active { color: #0969da; border-bottom-color: #0969da; }
-      body.light-mode .card { background: #ffffff; border-color: #d0d7de; }
-      body.light-mode .card-label { color: #57606a; }
-      body.light-mode .section { background: #ffffff; border-color: #d0d7de; }
-      body.light-mode .panel { background: #ffffff !important; border-color: #d0d7de; }
-      body.light-mode select, body.light-mode input[type="text"], body.light-mode input[type="number"], body.light-mode input[type="date"] { background: #f6f8fa; color: #24292f; border-color: #d0d7de; }
-      body.light-mode .trade-row { border-bottom-color: #d0d7de; }
-      body.light-mode .trade-detail-table th { background: #ffffff; color: #57606a; border-bottom-color: #d0d7de; }
-      body.light-mode .trade-detail-table td { border-bottom-color: #d0d7de; }
-      body.light-mode pre { background: #f6f8fa !important; color: #24292f; }
-      body.light-mode .btn-gen { background: #0969da22; color: #0969da; }
+      body.light-mode {
+        background: #f6f8fa;
+        color: #24292f;
+      }
+      body.light-mode .header {
+        background: #ffffff;
+        border-bottom-color: #d0d7de;
+      }
+      body.light-mode .header h1 {
+        color: #0969da;
+      }
+      body.light-mode .tabs {
+        background: #ffffff;
+        border-bottom-color: #d0d7de;
+      }
+      body.light-mode .tab {
+        color: #57606a;
+      }
+      body.light-mode .tab.active {
+        color: #0969da;
+        border-bottom-color: #0969da;
+      }
+      body.light-mode .card {
+        background: #ffffff;
+        border-color: #d0d7de;
+      }
+      body.light-mode .card-label {
+        color: #57606a;
+      }
+      body.light-mode .section {
+        background: #ffffff;
+        border-color: #d0d7de;
+      }
+      body.light-mode .panel {
+        background: #ffffff !important;
+        border-color: #d0d7de;
+      }
+      body.light-mode select,
+      body.light-mode input[type='text'],
+      body.light-mode input[type='number'],
+      body.light-mode input[type='date'] {
+        background: #f6f8fa;
+        color: #24292f;
+        border-color: #d0d7de;
+      }
+      body.light-mode .trade-row {
+        border-bottom-color: #d0d7de;
+      }
+      body.light-mode .trade-detail-table th {
+        background: #ffffff;
+        color: #57606a;
+        border-bottom-color: #d0d7de;
+      }
+      body.light-mode .trade-detail-table td {
+        border-bottom-color: #d0d7de;
+      }
+      body.light-mode pre {
+        background: #f6f8fa !important;
+        color: #24292f;
+      }
+      body.light-mode .btn-gen {
+        background: #0969da22;
+        color: #0969da;
+      }
 
       /* WF Enhanced viz */
-      .wf-window-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 12px; }
-      .wf-window-chart { height: 180px; border-radius: 6px; background: #161b22; }
-      .wf-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
-      .wf-bar { height: 24px; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 11px; }
+      .wf-window-charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .wf-window-chart {
+        height: 180px;
+        border-radius: 6px;
+        background: #161b22;
+      }
+      .wf-comparison {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+      .wf-bar {
+        height: 24px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        padding: 0 8px;
+        font-size: 11px;
+      }
 
       /* Enhanced responsive */
       @media (max-width: 480px) {
-        .tabs { overflow-x: auto; padding: 0 8px; }
-        .tab { padding: 10px 12px; font-size: 12px; white-space: nowrap; }
-        .header { padding: 12px 16px; }
-        .header h1 { font-size: 14px; }
-        .grid { grid-template-columns: 1fr !important; gap: 8px; }
-        .main { padding: 8px !important; }
-        .bt-form, .rp-form { grid-template-columns: 1fr !important; }
-        .trade-filters { flex-direction: column; }
-        .param-grid { grid-template-columns: 1fr !important; }
-        .wf-comparison { grid-template-columns: 1fr; }
+        .tabs {
+          overflow-x: auto;
+          padding: 0 8px;
+        }
+        .tab {
+          padding: 10px 12px;
+          font-size: 12px;
+          white-space: nowrap;
+        }
+        .header {
+          padding: 12px 16px;
+        }
+        .header h1 {
+          font-size: 14px;
+        }
+        .grid {
+          grid-template-columns: 1fr !important;
+          gap: 8px;
+        }
+        .main {
+          padding: 8px !important;
+        }
+        .bt-form,
+        .rp-form {
+          grid-template-columns: 1fr !important;
+        }
+        .trade-filters {
+          flex-direction: column;
+        }
+        .param-grid {
+          grid-template-columns: 1fr !important;
+        }
+        .wf-comparison {
+          grid-template-columns: 1fr;
+        }
       }
-
     </style>
   </head>
   <body>
     <div class="header">
       <h1>📊 코인 자동매매 대시보드</h1>
-      <div style="display:flex;gap:12px;align-items:center">
-        <button onclick="toggleTheme()" id="themeBtn" style="background:none;border:1px solid #30363d;color:#c9d1d9;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px">🌙 다크</button>
+      <div style="display: flex; gap: 12px; align-items: center">
+        <button
+          onclick="toggleTheme()"
+          id="themeBtn"
+          style="
+            background: none;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            border-radius: 6px;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 13px;
+          "
+        >
+          🌙 다크
+        </button>
         <span class="mode mode-paper" id="modeTag">PAPER</span>
       </div>
     </div>
@@ -619,12 +824,27 @@
           <div class="section">
             <h3>📋 전략</h3>
             <div id="strategyList"></div>
-            <div class="param-editor" id="paramEditor" style="display:none">
-              <h4 style="font-size:13px;margin-bottom:4px">⚙️ <span id="paramStrategyName"></span> 파라미터</h4>
+            <div class="param-editor" id="paramEditor" style="display: none">
+              <h4 style="font-size: 13px; margin-bottom: 4px">⚙️ <span id="paramStrategyName"></span> 파라미터</h4>
               <div class="param-grid" id="paramGrid"></div>
               <div class="param-actions">
-                <button class="btn-gen" onclick="saveStrategyParams()" style="font-size:12px;padding:4px 12px">저장</button>
-                <button onclick="closeParamEditor()" style="font-size:12px;padding:4px 12px;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;cursor:pointer">닫기</button>
+                <button class="btn-gen" onclick="saveStrategyParams()" style="font-size: 12px; padding: 4px 12px">
+                  저장
+                </button>
+                <button
+                  onclick="closeParamEditor()"
+                  style="
+                    font-size: 12px;
+                    padding: 4px 12px;
+                    background: #21262d;
+                    color: #c9d1d9;
+                    border: 1px solid #30363d;
+                    border-radius: 4px;
+                    cursor: pointer;
+                  "
+                >
+                  닫기
+                </button>
               </div>
             </div>
           </div>
@@ -649,7 +869,8 @@
       <div class="trade-detail-viewer" style="padding: 0 24px">
         <h3>📋 거래 상세 내역</h3>
         <div class="trade-filters">
-          <label>마켓
+          <label
+            >마켓
             <select id="tdMarket" onchange="loadTradeDetail()">
               <option value="">전체</option>
               <option value="KRW-BTC">KRW-BTC</option>
@@ -658,7 +879,8 @@
               <option value="KRW-SOL">KRW-SOL</option>
             </select>
           </label>
-          <label>타입
+          <label
+            >타입
             <select id="tdType" onchange="loadTradeDetail()">
               <option value="">전체</option>
               <option value="buy">매수</option>
@@ -666,7 +888,8 @@
               <option value="partial-sell">부분익절</option>
             </select>
           </label>
-          <label>표시
+          <label
+            >표시
             <select id="tdLimit" onchange="loadTradeDetail()">
               <option value="50">50건</option>
               <option value="100">100건</option>
@@ -724,18 +947,20 @@
           <h3 style="margin-bottom: 12px">🤖 멀티봇 관리</h3>
           <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap">
             <button class="btn-gen" onclick="startAllBots()">▶ 전체 시작</button>
-            <button class="btn-gen" style="background:#f8514933;color:#f85149" onclick="stopAllBots()">⏹ 전체 정지</button>
+            <button class="btn-gen" style="background: #f8514933; color: #f85149" onclick="stopAllBots()">
+              ⏹ 전체 정지
+            </button>
           </div>
           <div style="overflow-x: auto">
-            <table style="width:100%;font-size:13px;border-collapse:collapse">
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse">
               <thead>
-                <tr style="color:#8b949e;border-bottom:1px solid #30363d">
-                  <th style="padding:6px;text-align:left">마켓</th>
-                  <th style="padding:6px;text-align:left">전략</th>
-                  <th style="padding:6px;text-align:right">자산</th>
-                  <th style="padding:6px;text-align:right">거래수</th>
-                  <th style="padding:6px;text-align:center">상태</th>
-                  <th style="padding:6px;text-align:center">제어</th>
+                <tr style="color: #8b949e; border-bottom: 1px solid #30363d">
+                  <th style="padding: 6px; text-align: left">마켓</th>
+                  <th style="padding: 6px; text-align: left">전략</th>
+                  <th style="padding: 6px; text-align: right">자산</th>
+                  <th style="padding: 6px; text-align: right">거래수</th>
+                  <th style="padding: 6px; text-align: center">상태</th>
+                  <th style="padding: 6px; text-align: center">제어</th>
                 </tr>
               </thead>
               <tbody id="pfBotTable"></tbody>
@@ -747,7 +972,8 @@
         <div class="panel" style="margin-bottom: 16px">
           <h3 style="margin-bottom: 12px">➕ 봇 추가</h3>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: end">
-            <label>마켓
+            <label
+              >마켓
               <select id="pfNewMarket">
                 <option value="KRW-BTC">KRW-BTC</option>
                 <option value="KRW-ETH">KRW-ETH</option>
@@ -757,7 +983,8 @@
                 <option value="KRW-ADA">KRW-ADA</option>
               </select>
             </label>
-            <label>전략
+            <label
+              >전략
               <select id="pfNewStrategy">
                 <option value="ensemble">ensemble</option>
                 <option value="macd">macd</option>
@@ -769,7 +996,8 @@
                 <option value="adaptive-momentum">adaptive-momentum</option>
               </select>
             </label>
-            <label>캔들 단위
+            <label
+              >캔들 단위
               <select id="pfNewUnit">
                 <option value="minutes/15">15분</option>
                 <option value="minutes/60">1시간</option>
@@ -788,7 +1016,19 @@
             <button class="btn-gen" onclick="runCorrelation()">상관관계 분석</button>
             <button class="btn-gen" onclick="runStrategyMatch()">전략 매칭</button>
           </div>
-          <pre id="pfAnalysisResult" style="background:#0d1117;padding:12px;border-radius:6px;font-size:12px;max-height:400px;overflow:auto;white-space:pre-wrap;display:none"></pre>
+          <pre
+            id="pfAnalysisResult"
+            style="
+              background: #0d1117;
+              padding: 12px;
+              border-radius: 6px;
+              font-size: 12px;
+              max-height: 400px;
+              overflow: auto;
+              white-space: pre-wrap;
+              display: none;
+            "
+          ></pre>
         </div>
       </div>
     </div>
@@ -1076,7 +1316,10 @@
         if (name === 'backtest') loadBtHistory();
         if (name === 'reports') loadRpHistory();
         if (name === 'portfolio') loadPortfolio();
-        if (name === 'trading') { loadTradeDetail(); initPnlChart(); }
+        if (name === 'trading') {
+          loadTradeDetail();
+          initPnlChart();
+        }
       }
 
       // WebSocket 연결
@@ -1907,17 +2150,21 @@
       // ===== 포트폴리오 관리 =====
       function updatePortfolio(data) {
         if (!data) return;
-        document.getElementById('pfTotalAssets').textContent = Math.round(data.totalAssets || 0).toLocaleString() + '원';
+        document.getElementById('pfTotalAssets').textContent =
+          Math.round(data.totalAssets || 0).toLocaleString() + '원';
         document.getElementById('pfActiveBots').textContent = data.runningBots + '/' + data.totalBots;
         document.getElementById('pfTotalTrades').textContent = data.totalTrades || 0;
-        document.getElementById('pfPositionValue').textContent = Math.round(data.totalPositionValue || 0).toLocaleString() + '원';
+        document.getElementById('pfPositionValue').textContent =
+          Math.round(data.totalPositionValue || 0).toLocaleString() + '원';
         if (data.bots) renderBotTable(data.bots);
       }
 
       function renderBotTable(bots) {
         const tbody = document.getElementById('pfBotTable');
         if (!tbody) return;
-        tbody.innerHTML = bots.map(b => `
+        tbody.innerHTML = bots
+          .map(
+            (b) => `
           <tr style="border-bottom:1px solid #21262d">
             <td style="padding:6px">${b.market}</td>
             <td style="padding:6px">${b.strategy || '-'}</td>
@@ -1932,7 +2179,9 @@
               <button onclick="removeBot('${b.market}')"
                 style="font-size:11px;padding:2px 8px;cursor:pointer;background:#f8514922;color:#f85149;border:1px solid #f8514944;border-radius:4px">삭제</button>
             </td>
-          </tr>`).join('');
+          </tr>`,
+          )
+          .join('');
       }
 
       async function loadPortfolio() {
@@ -1940,7 +2189,9 @@
           const res = await apiFetch('/api/portfolio');
           const data = await res.json();
           updatePortfolio(data);
-        } catch (e) { console.error('포트폴리오 로드 실패', e); }
+        } catch (e) {
+          console.error('포트폴리오 로드 실패', e);
+        }
       }
 
       async function addBot() {
@@ -1951,10 +2202,12 @@
           await apiFetch('/api/bots/add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ market, strategyName, unit })
+            body: JSON.stringify({ market, strategyName, unit }),
           });
           loadPortfolio();
-        } catch (e) { console.error('봇 추가 실패', e); }
+        } catch (e) {
+          console.error('봇 추가 실패', e);
+        }
       }
 
       async function removeBot(market) {
@@ -1962,35 +2215,45 @@
         try {
           await apiFetch('/api/bots/' + encodeURIComponent(market), { method: 'DELETE' });
           loadPortfolio();
-        } catch (e) { console.error('봇 삭제 실패', e); }
+        } catch (e) {
+          console.error('봇 삭제 실패', e);
+        }
       }
 
       async function startSingleBot(market) {
         try {
           await apiFetch('/api/bots/' + encodeURIComponent(market) + '/start', { method: 'POST' });
           loadPortfolio();
-        } catch (e) { console.error('봇 시작 실패', e); }
+        } catch (e) {
+          console.error('봇 시작 실패', e);
+        }
       }
 
       async function stopSingleBot(market) {
         try {
           await apiFetch('/api/bots/' + encodeURIComponent(market) + '/stop', { method: 'POST' });
           loadPortfolio();
-        } catch (e) { console.error('봇 정지 실패', e); }
+        } catch (e) {
+          console.error('봇 정지 실패', e);
+        }
       }
 
       async function startAllBots() {
         try {
           await apiFetch('/api/bots/start-all', { method: 'POST' });
           loadPortfolio();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }
 
       async function stopAllBots() {
         try {
           await apiFetch('/api/bots/stop-all', { method: 'POST' });
           loadPortfolio();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }
 
       async function runCorrelation() {
@@ -2001,11 +2264,13 @@
           const res = await apiFetch('/api/analysis/correlation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ markets: ['KRW-BTC','KRW-ETH','KRW-XRP','KRW-SOL','KRW-DOGE'] })
+            body: JSON.stringify({ markets: ['KRW-BTC', 'KRW-ETH', 'KRW-XRP', 'KRW-SOL', 'KRW-DOGE'] }),
           });
           const data = await res.json();
           el.textContent = JSON.stringify(data, null, 2);
-        } catch (e) { el.textContent = '오류: ' + e.message; }
+        } catch (e) {
+          el.textContent = '오류: ' + e.message;
+        }
       }
 
       async function runStrategyMatch() {
@@ -2016,11 +2281,13 @@
           const res = await apiFetch('/api/analysis/match-all', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ markets: ['KRW-BTC','KRW-ETH','KRW-XRP'] })
+            body: JSON.stringify({ markets: ['KRW-BTC', 'KRW-ETH', 'KRW-XRP'] }),
           });
           const data = await res.json();
           el.textContent = JSON.stringify(data, null, 2);
-        } catch (e) { el.textContent = '오류: ' + e.message; }
+        } catch (e) {
+          el.textContent = '오류: ' + e.message;
+        }
       }
 
       // ===== P1-8: Dashboard Improvements =====
@@ -2035,7 +2302,10 @@
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
       }
       // Restore theme
-      if (localStorage.getItem('theme') === 'light') { isDark = false; document.body.classList.add('light-mode'); }
+      if (localStorage.getItem('theme') === 'light') {
+        isDark = false;
+        document.body.classList.add('light-mode');
+      }
 
       // --- PnL Equity Curve ---
       let pnlChart = null;
@@ -2075,7 +2345,7 @@
           let equity = 1000000; // initial capital assumption
           const dataPoints = [];
           const seen = new Set();
-          trades.forEach(t => {
+          trades.forEach((t) => {
             if ((t.type === 'sell' || t.type === 'partial-sell') && t.pnl !== undefined) {
               equity += t.pnl;
               const ts = t.timestamp ? Math.floor(new Date(t.timestamp).getTime() / 1000) : null;
@@ -2090,7 +2360,9 @@
             pnlSeries.setData(dataPoints);
             pnlChart.timeScale().fitContent();
           }
-        } catch (e) { console.error('PnL load error', e); }
+        } catch (e) {
+          console.error('PnL load error', e);
+        }
       }
 
       // --- Trade Detail Viewer ---
@@ -2103,28 +2375,43 @@
           if (market) url += '&market=' + encodeURIComponent(market);
           const res = await apiFetch(url);
           let trades = await res.json();
-          if (typeFilter) trades = trades.filter(t => t.type === typeFilter);
+          if (typeFilter) trades = trades.filter((t) => t.type === typeFilter);
           renderTradeDetail(trades);
-        } catch (e) { console.error('Trade detail error', e); }
+        } catch (e) {
+          console.error('Trade detail error', e);
+        }
       }
 
       function renderTradeDetail(trades) {
         const tbody = document.getElementById('tdBody');
         if (!tbody) return;
         if (!trades.length) {
-          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#8b949e;padding:16px">\uac70\ub798 \ub0b4\uc5ed \uc5c6\uc74c</td></tr>';
+          tbody.innerHTML =
+            '<tr><td colspan="9" style="text-align:center;color:#8b949e;padding:16px">\uac70\ub798 \ub0b4\uc5ed \uc5c6\uc74c</td></tr>';
           return;
         }
-        tbody.innerHTML = trades.slice().reverse().map((t, i) => {
-          const time = t.timestamp ? new Date(t.timestamp).toLocaleString('ko-KR') : '-';
-          const typeLabel = t.type === 'buy' ? '\U0001f7e2 \ub9e4\uc218' : t.type === 'sell' ? '\U0001f534 \ub9e4\ub3c4' : '\U0001f7e1 \ubd80\ubd84\uc775\uc808';
-          const entry = t.entryPrice ? Number(t.entryPrice).toLocaleString() : (t.price ? Number(t.price).toLocaleString() : '-');
-          const exit = t.exitPrice ? Number(t.exitPrice).toLocaleString() : '-';
-          const pnl = t.pnl !== undefined ? Math.round(t.pnl).toLocaleString() : '-';
-          const pnlPct = t.pnlPercent !== undefined ? t.pnlPercent.toFixed(2) + '%' : '-';
-          const pnlClass = t.pnl > 0 ? 'positive' : t.pnl < 0 ? 'negative' : '';
-          const reason = t.reason || '-';
-          return `<tr>
+        tbody.innerHTML = trades
+          .slice()
+          .reverse()
+          .map((t, i) => {
+            const time = t.timestamp ? new Date(t.timestamp).toLocaleString('ko-KR') : '-';
+            const typeLabel =
+              t.type === 'buy'
+                ? '\U0001f7e2 \ub9e4\uc218'
+                : t.type === 'sell'
+                  ? '\U0001f534 \ub9e4\ub3c4'
+                  : '\U0001f7e1 \ubd80\ubd84\uc775\uc808';
+            const entry = t.entryPrice
+              ? Number(t.entryPrice).toLocaleString()
+              : t.price
+                ? Number(t.price).toLocaleString()
+                : '-';
+            const exit = t.exitPrice ? Number(t.exitPrice).toLocaleString() : '-';
+            const pnl = t.pnl !== undefined ? Math.round(t.pnl).toLocaleString() : '-';
+            const pnlPct = t.pnlPercent !== undefined ? t.pnlPercent.toFixed(2) + '%' : '-';
+            const pnlClass = t.pnl > 0 ? 'positive' : t.pnl < 0 ? 'negative' : '';
+            const reason = t.reason || '-';
+            return `<tr>
             <td>${i + 1}</td>
             <td>${time}</td>
             <td>${t.market || '-'}</td>
@@ -2135,7 +2422,8 @@
             <td style="text-align:right" class="${pnlClass}">${pnlPct}</td>
             <td style="font-size:11px">${reason}</td>
           </tr>`;
-        }).join('');
+          })
+          .join('');
       }
 
       // --- Strategy Param Editor ---
@@ -2146,12 +2434,15 @@
         document.getElementById('paramEditor').style.display = 'block';
         document.getElementById('paramStrategyName').textContent = strategyId;
         const grid = document.getElementById('paramGrid');
-        grid.innerHTML = Object.entries(params || {}).map(([k, v]) =>
-          `<div class="param-item">
+        grid.innerHTML = Object.entries(params || {})
+          .map(
+            ([k, v]) =>
+              `<div class="param-item">
             <label>${k}</label>
             <input type="number" step="any" id="param_${k}" value="${v}" data-key="${k}">
-          </div>`
-        ).join('');
+          </div>`,
+          )
+          .join('');
       }
 
       function closeParamEditor() {
@@ -2163,16 +2454,20 @@
         if (!editingStrategy) return;
         const inputs = document.querySelectorAll('#paramGrid input');
         const params = {};
-        inputs.forEach(inp => { params[inp.dataset.key] = parseFloat(inp.value); });
+        inputs.forEach((inp) => {
+          params[inp.dataset.key] = parseFloat(inp.value);
+        });
         try {
           await apiFetch('/api/strategies/' + editingStrategy + '/params', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(params)
+            body: JSON.stringify(params),
           });
           closeParamEditor();
           loadStrategies(); // refresh list
-        } catch (e) { console.error('Param save error', e); }
+        } catch (e) {
+          console.error('Param save error', e);
+        }
       }
 
       // --- Enhanced Walk-Forward Visualization ---
@@ -2199,7 +2494,8 @@
           container.appendChild(div);
 
           const miniChart = LightweightCharts.createChart(chartDiv, {
-            width: chartDiv.clientWidth || 300, height: 160,
+            width: chartDiv.clientWidth || 300,
+            height: 160,
             layout: { background: { color: 'transparent' }, textColor: '#8b949e' },
             grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
             rightPriceScale: { borderColor: '#30363d' },
@@ -2227,7 +2523,7 @@
         const oosRet = data.oos?.avgReturn || 0;
         const maxAbs = Math.max(Math.abs(isRet), Math.abs(oosRet), 1);
         function bar(label, val) {
-          const pct = Math.min(Math.abs(val) / maxAbs * 100, 100);
+          const pct = Math.min((Math.abs(val) / maxAbs) * 100, 100);
           const color = val >= 0 ? '#3fb950' : '#f85149';
           return `<div>
             <div style="font-size:12px;color:#8b949e;margin-bottom:4px">${label}: ${val.toFixed(2)}%</div>
@@ -2242,7 +2538,6 @@
         initPnlChart();
         loadTradeDetail();
       }, 500);
-
     </script>
   </body>
 </html>

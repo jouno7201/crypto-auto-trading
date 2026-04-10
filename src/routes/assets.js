@@ -372,7 +372,6 @@ router.post('/analysis/match-all', async (req, res) => {
   }
 });
 
-
 // === 고급 분석 API ===
 const advancedAnalysis = require('../engine/advancedAnalysis');
 
@@ -419,7 +418,6 @@ router.get('/analysis/benchmark', (req, res) => {
   }
 });
 
-
 // === 차익거래 API ===
 const arbitrage = require('../engine/arbitrage');
 
@@ -430,7 +428,7 @@ router.get('/analysis/premium', async (req, res) => {
     const result = await arbitrage.getKimchiPremium(
       market || 'KRW-BTC',
       symbol || 'BTCUSDT',
-      krwUsd ? parseFloat(krwUsd) : undefined
+      krwUsd ? parseFloat(krwUsd) : undefined,
     );
     res.json(result);
   } catch (err) {
@@ -447,7 +445,6 @@ router.get('/analysis/premium/scan', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 module.exports = router;
 module.exports.setBotInstance = setBotInstance;

@@ -15,8 +15,12 @@ jest.mock('../src/engine/tradingBot', () => {
       this.strategy = { name: this.strategyName };
       this.config = { strategyName: this.strategyName, unit: this.unit, intervalMs: 60000 };
     }
-    start() { this.running = true; }
-    stop() { this.running = false; }
+    start() {
+      this.running = true;
+    }
+    stop() {
+      this.running = false;
+    }
     configure(cfg) {
       if (cfg.strategyName) this.strategyName = cfg.strategyName;
       return this.getStatus();

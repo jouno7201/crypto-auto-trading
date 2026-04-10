@@ -28,7 +28,11 @@ function pearsonCorrelation(x, y) {
   const n = Math.min(x.length, y.length);
   if (n < 2) return 0;
 
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumX2 = 0,
+    sumY2 = 0;
   for (let i = 0; i < n; i++) {
     sumX += x[i];
     sumY += y[i];
@@ -103,9 +107,7 @@ async function calculateCorrelationMatrix(markets, options = {}) {
 
   // 2. 타임스탬프 기반 정렬 (공통 구간만 사용)
   const timestampSets = validMarkets.map((m) => new Set(data[m].map((c) => c.timestamp)));
-  const commonTimestamps = [...timestampSets[0]].filter((ts) =>
-    timestampSets.every((set) => set.has(ts)),
-  );
+  const commonTimestamps = [...timestampSets[0]].filter((ts) => timestampSets.every((set) => set.has(ts)));
   commonTimestamps.sort((a, b) => a - b);
 
   if (commonTimestamps.length < 50) {
@@ -140,9 +142,7 @@ async function calculateCorrelationMatrix(markets, options = {}) {
   for (const m1 of validMarkets) {
     matrix[m1] = {};
     for (const m2 of validMarkets) {
-      matrix[m1][m2] = parseFloat(
-        pearsonCorrelation(returnsMap[m1], returnsMap[m2]).toFixed(4),
-      );
+      matrix[m1][m2] = parseFloat(pearsonCorrelation(returnsMap[m1], returnsMap[m2]).toFixed(4));
     }
   }
 
@@ -198,8 +198,7 @@ async function recommendPortfolio(candidateMarkets, options = {}) {
       if (selected.includes(candidate)) continue;
 
       // 기존 포트폴리오와의 평균 상관관계
-      const avgCorr =
-        selected.reduce((sum, m) => sum + Math.abs(matrix[candidate][m]), 0) / selected.length;
+      const avgCorr = selected.reduce((sum, m) => sum + Math.abs(matrix[candidate][m]), 0) / selected.length;
 
       if (avgCorr < bestScore) {
         bestScore = avgCorr;
@@ -218,9 +217,7 @@ async function recommendPortfolio(candidateMarkets, options = {}) {
       market: m,
       avgCorrelationWithOthers: parseFloat(
         (
-          selected
-            .filter((o) => o !== m)
-            .reduce((sum, o) => sum + Math.abs(matrix[m][o]), 0) /
+          selected.filter((o) => o !== m).reduce((sum, o) => sum + Math.abs(matrix[m][o]), 0) /
           Math.max(selected.length - 1, 1)
         ).toFixed(4),
       ),

@@ -124,9 +124,7 @@ describe('sqliteStore', () => {
 
   describe('save trades (bulk overwrite)', () => {
     test('save replaces all trades', () => {
-      store.save('trades.json', [
-        { type: 'buy', market: 'KRW-ETH', price: 4000000, volume: 0.1 },
-      ]);
+      store.save('trades.json', [{ type: 'buy', market: 'KRW-ETH', price: 4000000, volume: 0.1 }]);
       const trades = store.load('trades.json', []);
       expect(trades.length).toBe(1);
       expect(trades[0].market).toBe('KRW-ETH');

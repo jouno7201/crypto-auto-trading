@@ -11,9 +11,7 @@ const { createLogger } = require('../utils/logger');
 
 const log = createLogger('bot-manager');
 
-const DEFAULT_MARKETS = [
-  { market: 'KRW-BTC', strategyName: 'ensemble', unit: '60' },
-];
+const DEFAULT_MARKETS = [{ market: 'KRW-BTC', strategyName: 'ensemble', unit: '60' }];
 
 class BotManager {
   constructor(globalConfig = {}) {
@@ -142,9 +140,7 @@ class BotManager {
 
     for (const [market, bot] of this.bots) {
       const status = bot.getStatus();
-      const posValue = status.position
-        ? status.position.volume * status.position.entryPrice
-        : 0;
+      const posValue = status.position ? status.position.volume * status.position.entryPrice : 0;
 
       bots.push({
         market,
