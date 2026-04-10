@@ -373,6 +373,53 @@ router.post('/analysis/match-all', async (req, res) => {
 });
 
 
+// === 고급 분석 API ===
+const advancedAnalysis = require('../engine/advancedAnalysis');
+
+// 몬테카를로 시뮬레이션
+router.post('/analysis/monte-carlo', (req, res) => {
+  try {
+    const result = advancedAnalysis.monteCarlo(req.body || {});
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 고급 성과 지표 (Sortino, Calmar 등)
+router.get('/analysis/metrics', (req, res) => {
+  try {
+    const result = advancedAnalysis.advancedMetrics(req.query || {});
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 드로다운 분석
+router.get('/analysis/drawdown', (req, res) => {
+  try {
+    const opts = { ...req.query };
+    if (opts.topN) opts.topN = parseInt(opts.topN, 10);
+    if (opts.initialCapital) opts.initialCapital = parseInt(opts.initialCapital, 10);
+    const result = advancedAnalysis.drawdownAnalysis(opts);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 벤치마크 비교
+router.get('/analysis/benchmark', (req, res) => {
+  try {
+    const result = advancedAnalysis.benchmarkComparison(req.query || {});
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;
 module.exports.setBotInstance = setBotInstance;
 module.exports.setBotManager = setBotManager;

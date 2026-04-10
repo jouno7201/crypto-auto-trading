@@ -395,6 +395,20 @@ function runBacktest(strategy, candles, options = {}) {
   const stdReturn = Math.sqrt(returns.reduce((a, b) => a + (b - avgReturn) ** 2, 0) / returns.length);
   const sharpeRatio = stdReturn > 0 ? (avgReturn / stdReturn) * Math.sqrt(252) : 0;
 
+  // Sortino 비율 (하방 편차만)
+  const dailyRf = 0.035 / 252; // 무위험 수익률 연 3.5%
+  const negReturns = returns.filter((r) => r < dailyRf);
+  const downsideDev = negReturns.length > 0
+    ? Math.sqrt(negReturns.reduce((a, r) => a + (r - dailyRf) ** 2, 0) / returns.length)
+    : 0;
+  const sortinoRatio = downsideDev > 0 ? ((avgReturn - dailyRf) / downsideDev) * Math.sqrt(252) : 0;
+
+  // Calmar 비율 (연환산 수익률 / MDD)
+  const annualReturn = returns.length > 0
+    ? ((Math.pow(1 + totalReturn / 100, 252 / returns.length) - 1) * 100)
+    : 0;
+  const calmarRatio = maxDrawdown > 0 ? annualReturn / maxDrawdown : 0;
+
   // 롱/숏 통계
   const longTrades = trades.filter((t) => t.side === 'long');
   const shortTrades = trades.filter((t) => t.side === 'short');
@@ -424,6 +438,8 @@ function runBacktest(strategy, candles, options = {}) {
       totalReturn: parseFloat(totalReturn.toFixed(2)),
       maxDrawdown: parseFloat(maxDrawdown.toFixed(2)),
       sharpeRatio: parseFloat(sharpeRatio.toFixed(3)),
+      sortinoRatio: parseFloat(Math.min(sortinoRatio, 999).toFixed(3)),
+      calmarRatio: parseFloat(Math.min(calmarRatio, 999).toFixed(3)),
       profitFactor: parseFloat(profitFactor.toFixed(2)),
     },
     trades: {
