@@ -48,7 +48,6 @@ jest.mock('../src/api', () => ({
     getOrder: jest.fn(),
     cancelOrder: jest.fn(),
   },
-  binance: {},
 }));
 
 const { executeOrder, getOrders } = require('../src/engine/executor');

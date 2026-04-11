@@ -8,7 +8,7 @@
 ## ✅ 완료된 작업
 
 - [x] 프로젝트 초기 세팅 (Express, WebSocket, JSON Store)
-- [x] Upbit/Binance API 연동 (시세 조회, 캔들 수집)
+- [x] Upbit API 연동 (시세 조회, 캔들 수집)
 - [x] 10개 전략 구현 (MA Cross, RSI, Bollinger, MACD, VolBreakout, TripleEMA, Combo, MeanReversion, AdaptiveMomentum, Ensemble)
 - [x] 백테스트 엔진 v2 (ATR SL/TP, 트레일링, 슬리피지, 쿨다운)
 - [x] 워크포워드 검증 엔진 (in-sample → out-of-sample)
@@ -89,7 +89,6 @@
 - [x] 봇에 ATR 기반 동적 SL/TP 통합 (riskManager + tradingBot 연동)
 - [x] 부분 익절 (TP 래더) — ATR×2.0=33%, ATR×3.5=33% 분할 청산
 - [x] 트레일링 스탑 실시간 적용 (ATR×2.5, 마켓상태별 멀티플라이어)
-- [x] 봇 자동 재시작 (PM2 ecosystem.config.js)
 - [x] 봇 상태 자동 복구 (graceful shutdown + 기존 포지션 복원)
 
 ### 8. ~~대시보드 개선~~ ✅ 완료 (2026-04-11)
@@ -118,21 +117,15 @@
 - [x] 드로다운 분석 (기간별, 원인별)
 - [x] 시장 벤치마크 대비 성과 비교 (BTC B&H vs 전략)
 
-### 11. 인프라 & 배포
+### 11. 인프라
 
-- [x] Docker 컨테이너화 (Dockerfile + docker-compose)
 - [x] CI/CD 파이프라인 (GitHub Actions)
-- [x] 클라우드 배포 (AWS EC2/Lightsail 또는 Railway)
-- [x] HTTPS 적용 (Let's Encrypt)
 - [x] 자동 데이터 백업 (일 1회)
 
 ### 12. 고급 기능
 
 - [x] AI/ML 전략 (Python 마이크로서비스 연동) — mlBridge.js + ml_service.py
 - [x] 뉴스/소셜 센티먼트 데이터 피드 — mlBridge.getSentiment + ml_service /sentiment
-- [x] Binance 주문 실행 지원 — exchange/binance.js (시세/주문/잔고)
-- [x] 거래소 간 차익거래 전략 — arbitrage.js (김치 프리미엄, 멀티 스캔)
-- [x] Telegram 봇 알림 추가 — telegram.js (거래/리포트/알림), executor 연동
 
 ---
 

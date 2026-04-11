@@ -298,7 +298,7 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-// Graceful shutdown (PM2, Docker, Ctrl+C)
+// Graceful shutdown (Ctrl+C)
 function gracefulShutdown(signal) {
   log.info({ signal }, '종료 시그널 수신 — Graceful Shutdown');
   if (bot.running) {

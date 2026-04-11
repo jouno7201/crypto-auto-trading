@@ -80,15 +80,11 @@ open http://localhost:3008
 | 변수                  | 설명             |
 | --------------------- | ---------------- |
 | `DISCORD_WEBHOOK_URL` | Discord 웹훅 URL |
-| `TELEGRAM_BOT_TOKEN`  | Telegram 봇 토큰 |
-| `TELEGRAM_CHAT_ID`    | Telegram 채팅 ID |
 
 ### 외부 서비스 (선택)
 
 | 변수                 | 설명                                         |
 | -------------------- | -------------------------------------------- |
-| `BINANCE_API_KEY`    | 바이낸스 API Key (차익거래용)                |
-| `BINANCE_SECRET_KEY` | 바이낸스 Secret Key                          |
 | `ML_SERVICE_URL`     | ML 예측 서비스 URL (`http://localhost:5000`) |
 
 ---
@@ -106,22 +102,6 @@ npm run dev
 ```bash
 npm start
 ```
-
-### PM2로 실행 (권장)
-
-```bash
-pm2 start ecosystem.config.js
-pm2 logs crypto-bot     # 로그 확인
-pm2 status              # 상태 확인
-pm2 restart crypto-bot  # 재시작
-pm2 stop crypto-bot     # 정지
-```
-
-PM2 설정 (`ecosystem.config.js`):
-
-- 자동 재시작, 최대 메모리 512MB
-- 로그: `logs/pm2-out.log`, `logs/pm2-error.log`
-- 크래시 시 최대 10회 재시작, 5초 간격
 
 ### 서버 상태 확인
 
@@ -542,21 +522,6 @@ curl -H "Authorization: Bearer eyJhbG..." http://localhost:3008/api/assets/
 
 ## 고급 기능
 
-### 김치 프리미엄 (차익거래 모니터링)
-
-바이낸스 API 키 설정 후 업비트-바이낸스 간 가격 차이를 조회할 수 있습니다.
-
-```javascript
-const { getKimchiPremium, scanPremiums } = require('./src/engine/arbitrage');
-
-// 단일 코인 프리미엄 조회
-const premium = await getKimchiPremium('KRW-BTC', 'BTCUSDT', 1350);
-// → { upbitPrice, binancePrice, binancePriceKRW, premium (%), timestamp }
-
-// 다수 코인 스캔 (BTC, ETH, XRP, SOL, DOGE)
-const result = await scanPremiums();
-// → { pairs: [...], avgPremium }
-```
 
 ### 몬테카를로 시뮬레이션
 
@@ -586,60 +551,6 @@ python scripts/ml_service.py
 # .env에 설정
 ML_SERVICE_URL=http://localhost:5000
 ```
-
-### Telegram 알림
-
-거래 체결, 일간 리포트, 에러 발생 시 텔레그램으로 알림을 받습니다.
-
-```env
-TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNO
-TELEGRAM_CHAT_ID=987654321
-```
-
-설정 방법:
-
-1. [@BotFather](https://t.me/BotFather)에서 봇 생성 → 토큰 복사
-2. 봇에게 메시지 전송 후 `https://api.telegram.org/bot{토큰}/getUpdates`에서 chat_id 확인
-3. `.env`에 입력
-
----
-
-## 배포
-
-### Docker
-
-```bash
-docker compose build
-docker compose up -d        # 시작
-docker compose logs -f      # 로그 확인
-docker compose down         # 종료
-```
-
-### PM2 (직접 설치)
-
-```bash
-npm ci --production
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup    # 부팅 시 자동 시작
-```
-
-### Railway
-
-1. GitHub 연동
-2. 환경변수 설정: `UPBIT_ACCESS_KEY`, `UPBIT_SECRET_KEY`, `NODE_ENV=production`, `PORT`
-3. `main` 브랜치 push 시 자동 배포
-
-### AWS EC2
-
-```bash
-git clone https://github.com/jouno7201/crypto-auto-trading.git
-cd crypto-auto-trading
-npm ci --production
-pm2 start ecosystem.config.js
-```
-
-HTTPS 적용 시 Nginx 리버스 프록시 + Let's Encrypt Certbot을 사용합니다.
 
 ---
 

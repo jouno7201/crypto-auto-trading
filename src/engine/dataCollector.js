@@ -6,7 +6,7 @@
  */
 
 const WebSocket = require('ws');
-const { upbit, binance } = require('../api');
+const { upbit } = require('../api');
 const store = require('../store/jsonStore');
 const { createLogger } = require('../utils/logger');
 
@@ -37,21 +37,6 @@ async function fetchUpbitCandles(market, unit = '60', count = 200) {
   store.save(`candles/${market}_${unit}.json`, candles);
 
   log.debug({ market, unit, count: candles.length }, '캔들 수집 완료');
-  return candles;
-}
-
-/**
- * Binance 과거 캔들 데이터 수집 및 저장
- */
-async function fetchBinanceCandles(symbol, interval = '1h', limit = 200) {
-  const candles = await binance.getCandles(symbol, interval, limit);
-
-  const cacheKey = `${symbol}_${interval}`;
-  cache.set(cacheKey, candles);
-
-  store.save(`candles/${symbol}_${interval}.json`, candles);
-
-  log.debug({ symbol, interval, count: candles.length }, '바이낸스 캔들 수집 완료');
   return candles;
 }
 
@@ -170,7 +155,6 @@ async function fetchUpbitCandlesByRange(market, unit, startDate, endDate) {
 module.exports = {
   fetchUpbitCandles,
   fetchUpbitCandlesByRange,
-  fetchBinanceCandles,
   getCandles,
   streamUpbitTicker,
   cache,
