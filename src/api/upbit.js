@@ -7,7 +7,6 @@
 
 const axios = require('axios');
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
 const { orderLimiter, queryLimiter } = require('../utils/rateLimiter');
 
 const BASE_URL = 'https://api.upbit.com/v1';
@@ -25,7 +24,7 @@ class UpbitAPI {
     const jwt = require('jsonwebtoken');
     const payload = {
       access_key: this.accessKey,
-      nonce: uuidv4(),
+      nonce: crypto.randomUUID(),
     };
     if (queryString) {
       const queryHash = crypto.createHash('sha512').update(queryString, 'utf-8').digest('hex');

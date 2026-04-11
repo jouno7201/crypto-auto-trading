@@ -1,4 +1,14 @@
 // 코인 자동매매 시스템 - 엔트리 포인트
+// Windows 터미널 한글 깨짐 방지: stdout/stderr UTF-8 강제
+if (process.platform === 'win32') {
+  const { execSync } = require('child_process');
+  try {
+    execSync('chcp 65001', { stdio: 'ignore' });
+  } catch {}
+  if (process.stdout.setEncoding) process.stdout.setEncoding('utf8');
+  if (process.stderr.setEncoding) process.stderr.setEncoding('utf8');
+}
+
 require('dotenv').config();
 
 const express = require('express');
@@ -14,6 +24,7 @@ const { authenticate, authenticateWs, generateToken } = require('./middleware/au
 const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandler');
 const { createLogger } = require('./utils/logger');
 
+const path = require('path');
 const log = createLogger('server');
 
 const app = express();
@@ -82,7 +93,7 @@ const heavyLimiter = rateLimit({
 app.use(express.json());
 
 // 정적 파일 (대시보드)
-app.use(express.static('src/dashboard'));
+app.use(express.static(path.join(__dirname, 'dashboard')));
 
 // 헬스체크 (인증 불필요)
 app.get('/health', (req, res) => {
