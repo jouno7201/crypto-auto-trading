@@ -14,9 +14,8 @@
 10. [CLI 도구](#cli-도구)
 11. [API 레퍼런스](#api-레퍼런스)
 12. [고급 기능](#고급-기능)
-13. [배포](#배포)
-14. [백업](#백업)
-15. [문제 해결](#문제-해결)
+13. [백업](#백업)
+14. [문제 해결](#문제-해결)
 
 ---
 
@@ -26,14 +25,17 @@
 # 1. 의존성 설치
 npm ci
 
-# 2. 환경변수 설정
-cp .env.example .env
-# .env 파일 편집 (API 키 등)
+# 2. 대시보드 빌드
+npm run dashboard:build
 
-# 3. 서버 실행
+# 3. 환경변수 설정
+cp .env.example .env
+# .env 파일 편집
+
+# 4. 서버 실행
 npm start
 
-# 4. 대시보드 접속
+# 5. 대시보드 접속
 open http://localhost:3008
 ```
 
@@ -43,23 +45,19 @@ open http://localhost:3008
 
 `.env.example`을 `.env`로 복사 후 아래 항목을 설정합니다.
 
-### 필수 설정
+### 기본 설정
 
-| 변수               | 설명                    | 기본값               |
-| ------------------ | ----------------------- | -------------------- |
-| `PORT`             | 서버 포트               | `3008`               |
-| `API_TOKEN`        | API 인증 토큰           | (없음 — 반드시 설정) |
-| `JWT_SECRET`       | JWT 서명 키 (32자 이상) | (없음 — 반드시 설정) |
-| `UPBIT_ACCESS_KEY` | 업비트 API Access Key   | (없음)               |
-| `UPBIT_SECRET_KEY` | 업비트 API Secret Key   | (없음)               |
+| 변수               | 설명                  | 기본값 |
+| ------------------ | --------------------- | ------ |
+| `PORT`             | 서버 포트             | `3008` |
+| `UPBIT_ACCESS_KEY` | 업비트 API Access Key | (없음) |
+| `UPBIT_SECRET_KEY` | 업비트 API Secret Key | (없음) |
 
 ### 선택 설정
 
 | 변수                | 설명                         | 기본값                  |
 | ------------------- | ---------------------------- | ----------------------- |
 | `TRADING_MODE`      | 거래 모드 (`paper` / `live`) | `paper`                 |
-| `AUTH_ENABLED`      | API 인증 활성화              | `true`                  |
-| `JWT_EXPIRES`       | JWT 만료 시간                | `24h`                   |
 | `LOG_LEVEL`         | 로그 레벨                    | `info`                  |
 | `CORS_ORIGINS`      | 허용 도메인 (쉼표 구분)      | `http://localhost:3008` |
 | `RATE_LIMIT_GLOBAL` | 전체 요청 제한 (분당)        | `100`                   |
@@ -83,9 +81,9 @@ open http://localhost:3008
 
 ### 외부 서비스 (선택)
 
-| 변수                 | 설명                                         |
-| -------------------- | -------------------------------------------- |
-| `ML_SERVICE_URL`     | ML 예측 서비스 URL (`http://localhost:5000`) |
+| 변수             | 설명                                         |
+| ---------------- | -------------------------------------------- |
+| `ML_SERVICE_URL` | ML 예측 서비스 URL (`http://localhost:5000`) |
 
 ---
 
@@ -96,6 +94,8 @@ open http://localhost:3008
 ```bash
 npm run dev
 ```
+
+nodemon이 `src/` 변경을 감지하면 자동 재시작합니다 (`src/dashboard/` 빌드 산출물은 무시).
 
 ### 프로덕션 모드
 
@@ -113,15 +113,28 @@ curl http://localhost:3008/health
 
 ## 대시보드
 
-서버 실행 후 `http://localhost:3008`에 접속하면 웹 대시보드가 표시됩니다.
+React + Vite 기반 SPA로, 서버 실행 후 `http://localhost:3008`에 접속합니다.
 
-### 주요 화면
+### 대시보드 개발
 
-- **상단 헤더**: 시스템 이름 + 거래 모드 표시 (Paper/Live)
-- **지표 카드**: 자본금, 포지션 가치, 총자산, 거래 횟수, 손익률
-- **차트**: 실시간 캔들스틱 차트 (Lightweight Charts)
-- **봇 컨트롤**: 시작/정지, 전략 선택, 마켓/단위 설정
-- **전략 목록**: 전략 활성화/비활성화 토글
+```bash
+# 대시보드 의존성 설치 (최초 1회)
+cd dashboard && npm ci
+
+# 개발 서버 (HMR, 포트 5173 → 백엔드 3008 프록시)
+npm run dashboard:dev
+
+# 프로덕션 빌드 (→ src/dashboard/에 출력)
+npm run dashboard:build
+```
+
+### 탭 구성
+
+| 탭            | 기능                                      |
+| ------------- | ----------------------------------------- |
+| **트레이딩**  | 실시간 차트, 봇 설정/시작/정지, 최근 거래 |
+| **전략 검증** | 백테스트 + 워크포워드 검증                |
+| **리포트**    | 리포트 생성/조회, CSV/PDF 내보내기        |
 
 ### 실시간 업데이트
 
@@ -133,7 +146,12 @@ WebSocket으로 실시간 가격, 봇 상태가 자동 갱신됩니다.
 
 ### 봇 설정 변경
 
+대시보드의 **트레이딩** 탭에서 마켓/전략/봉 단위를 선택하고 "적용" 버튼을 누르면 됩니다.
+
+API로도 가능합니다:
+
 ```bash
+# 봇 설정
 curl -X POST http://localhost:3008/api/assets/bot/configure \
   -H "Content-Type: application/json" \
   -d '{"market":"KRW-BTC", "strategyName":"macd", "unit":"60"}'
@@ -432,23 +450,9 @@ node src/cli/trade.js [옵션]
 
 ## API 레퍼런스
 
-### 인증
-
-인증이 활성화된 경우 (`AUTH_ENABLED=true`), 먼저 토큰을 발급받아야 합니다.
-
-```bash
-# 토큰 발급
-curl -X POST http://localhost:3008/api/auth/token \
-  -H "Content-Type: application/json" \
-  -d '{"secret": "your_api_token"}'
-
-# 응답: {"token": "eyJhbG..."}
-
-# 이후 요청에 토큰 포함
-curl -H "Authorization: Bearer eyJhbG..." http://localhost:3008/api/assets/
-```
-
 ### 엔드포인트 전체 목록
+
+인증 없이 모든 API를 바로 호출할 수 있습니다.
 
 #### 헬스체크
 
@@ -522,7 +526,6 @@ curl -H "Authorization: Bearer eyJhbG..." http://localhost:3008/api/assets/
 
 ## 고급 기능
 
-
 ### 몬테카를로 시뮬레이션
 
 과거 거래 데이터 기반으로 미래 자본 분포를 추정합니다.
@@ -587,15 +590,6 @@ lsof -ti:3008
 
 # 기존 프로세스 종료
 lsof -ti:3008 | xargs kill -9
-```
-
-### API 인증 오류 (401)
-
-```bash
-# 토큰 재발급
-curl -X POST http://localhost:3008/api/auth/token \
-  -H "Content-Type: application/json" \
-  -d '{"secret": "your_api_token"}'
 ```
 
 ### 캔들 데이터가 없을 때

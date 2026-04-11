@@ -5,7 +5,9 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "dev": "nodemon --ignore src/dashboard/ src/index.js",
+    "dashboard:dev": "cd dashboard && npm run dev",
+    "dashboard:build": "cd dashboard && npm run build",
     "backtest": "node src/cli/backtest.js",
     "trade": "node src/cli/trade.js",
     "lint": "eslint src/",

@@ -99,7 +99,7 @@
 | Node.js 프로젝트 초기화 | `package.json`, ESLint, Prettier, TypeScript 설정                                 |
 | 폴더 구조 정의          | `src/` 하위에 `strategies/`, `engine/`, `api/`, `store/`, `routes/`, `dashboard/` |
 | JSON 데이터 저장소 세팅 | `data/` 폴더 + JSON 읽기/쓰기 유틸 모듈 작성                                      |
-| 거래소 API 연동 준비    | Upbit API 키 관리 (환경변수), SDK 래퍼 모듈 작성                        |
+| 거래소 API 연동 준비    | Upbit API 키 관리 (환경변수), SDK 래퍼 모듈 작성                                  |
 | Git 저장소 세팅         | `.gitignore`, 브랜치 전략(main/dev/feature), 커밋 컨벤션                          |
 
 **산출물:** 빌드·실행 가능한 빈 프로젝트, JSON 데이터 저장소 유틸

@@ -20,7 +20,7 @@ const rateLimit = require('express-rate-limit');
 const TradingBot = require('./engine/tradingBot');
 const BotManager = require('./engine/botManager');
 const { streamUpbitTicker } = require('./engine/dataCollector');
-const { authenticate, authenticateWs, generateToken } = require('./middleware/auth');
+
 const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandler');
 const { createLogger } = require('./utils/logger');
 
@@ -35,14 +35,13 @@ const PORT = process.env.PORT || 3008;
 
 // ===== 보안 미들웨어 =====
 
-// Helmet: 보안 HTTP 헤더 (CSP는 대시보드 인라인 스크립트 허용)
+// Helmet: 보안 HTTP 헤더 (Vite 빌드 대시보드 — CDN/인라인 필요 없음)
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
-        scriptSrcAttr: ["'unsafe-inline'"],
+        scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         connectSrc: ["'self'", 'wss:', 'ws:'],
         imgSrc: ["'self'", 'data:'],
@@ -100,36 +99,21 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-// 토큰 발급 엔드포인트 (API_TOKEN으로 JWT 발급)
-app.post('/api/auth/token', (req, res) => {
-  const { secret } = req.body;
-  const apiToken = process.env.API_TOKEN;
-  if (!apiToken) return res.status(501).json({ error: '인증이 설정되지 않았습니다' });
-  if (secret !== apiToken) return res.status(401).json({ error: '잘못된 인증 정보' });
-
-  try {
-    const token = generateToken({ role: 'admin' }, process.env.JWT_EXPIRES || '24h');
-    res.json({ token });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ===== API 라우트 (인증 적용) =====
-app.use('/api/strategies', authenticate, require('./routes/strategies'));
-app.use('/api/trades', authenticate, require('./routes/trades'));
-app.use('/api/assets', authenticate, require('./routes/assets'));
-app.use('/api/reports', authenticate, require('./routes/reports'));
+// ===== API 라우트 =====
+app.use('/api/strategies', require('./routes/strategies'));
+app.use('/api/trades', require('./routes/trades'));
+app.use('/api/assets', require('./routes/assets'));
+app.use('/api/reports', require('./routes/reports'));
 
 // 무거운 작업에 추가 Rate Limiting 적용
 const assetsRouter = require('./routes/assets');
-app.use('/api/assets/backtest/run', authenticate, heavyLimiter);
-app.use('/api/assets/backtest/walk-forward', authenticate, heavyLimiter);
-app.use('/api/reports/generate', authenticate, heavyLimiter);
+app.use('/api/assets/backtest/run', heavyLimiter);
+app.use('/api/assets/backtest/walk-forward', heavyLimiter);
+app.use('/api/reports/generate', heavyLimiter);
 
 // 알림 테스트 API (인증 필요)
 const notify = require('./engine/notifier');
-app.post('/api/notify/test', authenticate, async (req, res) => {
+app.post('/api/notify/test', async (req, res) => {
   try {
     await notify.notifyBotStart({
       market: 'KRW-BTC',
@@ -203,13 +187,6 @@ function restartTickerStream() {
 }
 
 wss.on('connection', (ws, req) => {
-  // WebSocket 인증
-  const authResult = authenticateWs(req);
-  if (!authResult.authenticated) {
-    ws.close(4001, authResult.error);
-    return;
-  }
-
   log.info('클라이언트 WebSocket 연결');
 
   // 연결 시 현재 봇 상태 전송 (레거시 + 멀티봇)
