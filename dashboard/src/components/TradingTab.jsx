@@ -8,9 +8,24 @@ import StrategyEditor from './StrategyEditor';
 import { api } from '../hooks/useApi';
 import { fmtNum, fmtPct, pnlClass, CHART_UNITS, MARKETS } from '../utils';
 
+const STORAGE_KEY = 'trading-config';
+
+function loadSavedConfig() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed.market && parsed.strategy && parsed.unit) return parsed;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 export default function TradingTab({ ticker, botStatus, wsSend, toast }) {
-  const [config, setConfig] = useState({ market: 'KRW-BTC', strategy: 'ensemble', unit: '60' });
-  const [chartUnit, setChartUnit] = useState('60');
+  const saved = loadSavedConfig();
+  const [config, setConfig] = useState(saved || { market: 'KRW-BTC', strategy: 'ensemble', unit: '60' });
+  const [chartUnit, setChartUnit] = useState(saved?.unit || '60');
   const [candles, setCandles] = useState([]);
   const [trades, setTrades] = useState([]);
   const [tradeTotal, setTradeTotal] = useState(0);
@@ -41,6 +56,11 @@ export default function TradingTab({ ticker, botStatus, wsSend, toast }) {
     setChartUnit(botStatus.unit || '60');
     configSynced.current = true;
   }, [botStatus?.market, botStatus?.strategyName, botStatus?.unit]);
+
+  // 설정 변경 시 localStorage에 저장
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  }, [config.market, config.strategy, config.unit]);
 
   const loadCandles = useCallback(async () => {
     const res = await api(`/api/assets/candles/${encodeURIComponent(config.market)}?unit=${chartUnit}&count=200`);

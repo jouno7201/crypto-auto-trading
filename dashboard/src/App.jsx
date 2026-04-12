@@ -4,6 +4,7 @@ import TradingTab from './components/TradingTab';
 import BacktestTab from './components/BacktestTab';
 import ReportsTab from './components/ReportsTab';
 import MultiBotTab from './components/MultiBotTab';
+import ErrorBoundary from './components/ErrorBoundary';
 import useWebSocket from './hooks/useWebSocket';
 import useToast from './hooks/useToast.jsx';
 
@@ -37,10 +38,26 @@ export default function App() {
           </button>
         ))}
       </nav>
-      {tab === 'trading' && <TradingTab ticker={ticker} botStatus={botStatus} wsSend={wsSend} toast={toast} />}
-      {tab === 'bots' && <MultiBotTab toast={toast} />}
-      {tab === 'backtest' && <BacktestTab toast={toast} />}
-      {tab === 'reports' && <ReportsTab toast={toast} />}
+      {tab === 'trading' && (
+        <ErrorBoundary>
+          <TradingTab ticker={ticker} botStatus={botStatus} wsSend={wsSend} toast={toast} />
+        </ErrorBoundary>
+      )}
+      {tab === 'bots' && (
+        <ErrorBoundary>
+          <MultiBotTab toast={toast} />
+        </ErrorBoundary>
+      )}
+      {tab === 'backtest' && (
+        <ErrorBoundary>
+          <BacktestTab toast={toast} />
+        </ErrorBoundary>
+      )}
+      {tab === 'reports' && (
+        <ErrorBoundary>
+          <ReportsTab toast={toast} />
+        </ErrorBoundary>
+      )}
 
       <Toast />
     </>

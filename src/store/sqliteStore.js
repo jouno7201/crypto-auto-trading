@@ -65,6 +65,24 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_trades_createdAt ON trades(createdAt);
   CREATE INDEX IF NOT EXISTS idx_orders_market ON orders(market);
   CREATE INDEX IF NOT EXISTS idx_orders_createdAt ON orders(createdAt);
+
+  CREATE TABLE IF NOT EXISTS strategy_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    strategy TEXT NOT NULL,
+    market TEXT,
+    totalTrades INTEGER DEFAULT 0,
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0,
+    totalPnl REAL DEFAULT 0,
+    avgPnl REAL DEFAULT 0,
+    winRate REAL DEFAULT 0,
+    maxWin REAL DEFAULT 0,
+    maxLoss REAL DEFAULT 0,
+    avgHoldBars INTEGER DEFAULT 0,
+    updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_strategy_stats_key ON strategy_stats(strategy, market);
 `);
 
 // === Prepared statements ===
@@ -98,8 +116,34 @@ function normalizeForInsert(item, fields) {
   return row;
 }
 
-const TRADE_FIELDS = ['type', 'market', 'price', 'volume', 'amount', 'entryPrice', 'exitPrice', 'pnl', 'pnlPercent', 'reason', 'strategy', 'timestamp', 'createdAt'];
-const ORDER_FIELDS = ['type', 'market', 'side', 'price', 'volume', 'amount', 'orderId', 'status', 'mode', 'timestamp', 'createdAt'];
+const TRADE_FIELDS = [
+  'type',
+  'market',
+  'price',
+  'volume',
+  'amount',
+  'entryPrice',
+  'exitPrice',
+  'pnl',
+  'pnlPercent',
+  'reason',
+  'strategy',
+  'timestamp',
+  'createdAt',
+];
+const ORDER_FIELDS = [
+  'type',
+  'market',
+  'side',
+  'price',
+  'volume',
+  'amount',
+  'orderId',
+  'status',
+  'mode',
+  'timestamp',
+  'createdAt',
+];
 
 /**
  * JSON 호환 load — 파일명 기반
@@ -203,12 +247,22 @@ function queryTrades(opts = {}) {
   const { market, type, limit = 50, offset = 0, orderBy = 'id DESC' } = opts;
   const conditions = [];
   const params = {};
-  if (market) { conditions.push('market = @market'); params.market = market; }
-  if (type) { conditions.push('type = @type'); params.type = type; }
+  if (market) {
+    conditions.push('market = @market');
+    params.market = market;
+  }
+  if (type) {
+    conditions.push('type = @type');
+    params.type = type;
+  }
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
   // Whitelist orderBy to prevent injection
-  const safeOrder = ['id ASC', 'id DESC', 'createdAt ASC', 'createdAt DESC', 'pnl ASC', 'pnl DESC'].includes(orderBy) ? orderBy : 'id DESC';
-  const rows = db.prepare(`SELECT * FROM trades ${where} ORDER BY ${safeOrder} LIMIT @limit OFFSET @offset`).all({ ...params, limit, offset });
+  const safeOrder = ['id ASC', 'id DESC', 'createdAt ASC', 'createdAt DESC', 'pnl ASC', 'pnl DESC'].includes(orderBy)
+    ? orderBy
+    : 'id DESC';
+  const rows = db
+    .prepare(`SELECT * FROM trades ${where} ORDER BY ${safeOrder} LIMIT @limit OFFSET @offset`)
+    .all({ ...params, limit, offset });
   const countRow = db.prepare(`SELECT COUNT(*) as total FROM trades ${where}`).get(params);
   return { rows, total: countRow.total, limit, offset };
 }
@@ -220,9 +274,14 @@ function queryOrders(opts = {}) {
   const { market, limit = 50, offset = 0 } = opts;
   const conditions = [];
   const params = {};
-  if (market) { conditions.push('market = @market'); params.market = market; }
+  if (market) {
+    conditions.push('market = @market');
+    params.market = market;
+  }
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
-  const rows = db.prepare(`SELECT * FROM orders ${where} ORDER BY id DESC LIMIT @limit OFFSET @offset`).all({ ...params, limit, offset });
+  const rows = db
+    .prepare(`SELECT * FROM orders ${where} ORDER BY id DESC LIMIT @limit OFFSET @offset`)
+    .all({ ...params, limit, offset });
   const countRow = db.prepare(`SELECT COUNT(*) as total FROM orders ${where}`).get(params);
   return { rows, total: countRow.total, limit, offset };
 }
@@ -233,7 +292,9 @@ function queryOrders(opts = {}) {
 function tradeStats(market) {
   const where = market ? 'WHERE market = ?' : '';
   const args = market ? [market] : [];
-  return db.prepare(`
+  return db
+    .prepare(
+      `
     SELECT
       COUNT(*) as totalTrades,
       SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
@@ -244,7 +305,9 @@ function tradeStats(market) {
       ROUND(MIN(pnl), 2) as maxLoss
     FROM trades
     ${where} AND type IN ('sell', 'partial-sell')
-  `.replace('AND', where ? 'AND' : 'WHERE')).get(...args);
+  `.replace('AND', where ? 'AND' : 'WHERE'),
+    )
+    .get(...args);
 }
 
 /**
@@ -254,4 +317,63 @@ function close() {
   db.close();
 }
 
-module.exports = { load, save, append, find, update, queryTrades, queryOrders, tradeStats, close, DATA_DIR, db };
+/**
+ * 전략별 실전 성과 갱신 — 매 sell 거래 후 호출
+ */
+function updateStrategyStats(strategy, market) {
+  if (!strategy) return;
+  const mkt = market || 'ALL';
+  const row = db
+    .prepare(
+      `
+    SELECT
+      COUNT(*) as totalTrades,
+      SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
+      SUM(CASE WHEN pnl <= 0 THEN 1 ELSE 0 END) as losses,
+      ROUND(SUM(pnl), 2) as totalPnl,
+      ROUND(AVG(pnl), 2) as avgPnl,
+      ROUND(MAX(pnl), 2) as maxWin,
+      ROUND(MIN(pnl), 2) as maxLoss
+    FROM trades
+    WHERE strategy = @strategy AND type IN ('sell', 'partial-sell')
+  `,
+    )
+    .get({ strategy });
+  if (!row || row.totalTrades === 0) return;
+  const winRate = row.totalTrades > 0 ? Math.round((row.wins / row.totalTrades) * 10000) / 10000 : 0;
+  db.prepare(
+    `
+    INSERT INTO strategy_stats (strategy, market, totalTrades, wins, losses, totalPnl, avgPnl, winRate, maxWin, maxLoss, updatedAt)
+    VALUES (@strategy, @market, @totalTrades, @wins, @losses, @totalPnl, @avgPnl, @winRate, @maxWin, @maxLoss, datetime('now'))
+    ON CONFLICT(strategy, market) DO UPDATE SET
+      totalTrades=@totalTrades, wins=@wins, losses=@losses, totalPnl=@totalPnl,
+      avgPnl=@avgPnl, winRate=@winRate, maxWin=@maxWin, maxLoss=@maxLoss, updatedAt=datetime('now')
+  `,
+  ).run({ strategy, market: mkt, ...row, winRate });
+}
+
+/**
+ * 전략 성과 조회
+ */
+function getStrategyStats(strategy) {
+  if (strategy) {
+    return db.prepare('SELECT * FROM strategy_stats WHERE strategy = ?').all(strategy);
+  }
+  return db.prepare('SELECT * FROM strategy_stats ORDER BY totalPnl DESC').all();
+}
+
+module.exports = {
+  load,
+  save,
+  append,
+  find,
+  update,
+  queryTrades,
+  queryOrders,
+  tradeStats,
+  updateStrategyStats,
+  getStrategyStats,
+  close,
+  DATA_DIR,
+  db,
+};

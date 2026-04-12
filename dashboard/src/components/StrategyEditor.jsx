@@ -28,6 +28,22 @@ export default function StrategyEditor({ toast }) {
   };
 
   const save = async (id) => {
+    // 프론트엔드 기본 검증
+    for (const [key, val] of Object.entries(draft)) {
+      if (typeof val !== 'number' || !Number.isFinite(val) || val <= 0) {
+        toast('error', `${key}: 0보다 큰 유한한 숫자여야 합니다`);
+        return;
+      }
+    }
+    if (draft.shortPeriod != null && draft.longPeriod != null && draft.shortPeriod >= draft.longPeriod) {
+      toast('error', 'shortPeriod는 longPeriod보다 작아야 합니다');
+      return;
+    }
+    if (draft.fastPeriod != null && draft.slowPeriod != null && draft.fastPeriod >= draft.slowPeriod) {
+      toast('error', 'fastPeriod는 slowPeriod보다 작아야 합니다');
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await api(`/api/strategies/${encodeURIComponent(id)}/params`, {
@@ -36,7 +52,8 @@ export default function StrategyEditor({ toast }) {
         body: JSON.stringify(draft),
       });
       if (!res || !res.ok) {
-        toast('error', '파라미터 저장 실패');
+        const err = res ? await res.json().catch(() => ({})) : {};
+        toast('error', err.error || '파라미터 저장 실패');
         return;
       }
       toast('ok', '파라미터 저장 완료');

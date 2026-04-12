@@ -17,6 +17,41 @@ function setBotManager(manager) {
   botManagerInstance = manager;
 }
 
+// === 백테스트 동시 실행 제한 (세마포어) ===
+const BT_MAX_CONCURRENT = 2;
+const BT_TIMEOUT_MS = 5 * 60 * 1000; // 5분
+let btRunning = 0;
+
+function btAcquire() {
+  if (btRunning >= BT_MAX_CONCURRENT) return false;
+  btRunning++;
+  return true;
+}
+
+function btRelease() {
+  btRunning = Math.max(0, btRunning - 1);
+}
+
+function withBtLimit(handler) {
+  return async (req, res) => {
+    if (!btAcquire()) {
+      return res.status(429).json({
+        error: `백테스트가 이미 ${BT_MAX_CONCURRENT}개 실행 중입니다. 잠시 후 다시 시도하세요.`,
+        running: btRunning,
+      });
+    }
+    const timer = setTimeout(() => {
+      btRelease();
+    }, BT_TIMEOUT_MS);
+    try {
+      await handler(req, res);
+    } finally {
+      clearTimeout(timer);
+      btRelease();
+    }
+  };
+}
+
 // 자산 현황
 router.get('/', async (req, res) => {
   try {
@@ -79,8 +114,12 @@ router.post('/bot/stop', (req, res) => {
 router.post('/bot/configure', (req, res) => {
   if (!botInstance) return res.status(400).json({ error: '봇 인스턴스 없음' });
   const { market, strategyName, strategyParams, unit } = req.body;
-  const status = botInstance.configure({ market, strategyName, strategyParams, unit });
-  res.json(status);
+  try {
+    const status = botInstance.configure({ market, strategyName, strategyParams, unit });
+    res.json(status);
+  } catch (err) {
+    res.status(409).json({ error: err.message });
+  }
 });
 
 // 백테스트 결과 목록
@@ -105,102 +144,108 @@ router.get('/backtest', (req, res) => {
   res.json(results);
 });
 
-// 백테스트 실행
-router.post('/backtest/run', async (req, res) => {
-  try {
-    const {
-      strategy,
-      market = 'KRW-BTC',
-      unit = '60',
-      count,
-      capital = 1000000,
-      params = {},
-      startDate,
-      endDate,
-      riskPerTrade,
-      stopLossATR,
-      takeProfitATR,
-      trailingStopATR,
-      allowShort,
-      useMarketDetector,
-    } = req.body;
-    if (!strategy) return res.status(400).json({ error: '전략을 선택하세요' });
+// 백테스트 실행 (동시 실행 제한)
+router.post(
+  '/backtest/run',
+  withBtLimit(async (req, res) => {
+    try {
+      const {
+        strategy,
+        market = 'KRW-BTC',
+        unit = '60',
+        count,
+        capital = 1000000,
+        params = {},
+        startDate,
+        endDate,
+        riskPerTrade,
+        stopLossATR,
+        takeProfitATR,
+        trailingStopATR,
+        allowShort,
+        useMarketDetector,
+      } = req.body;
+      if (!strategy) return res.status(400).json({ error: '전략을 선택하세요' });
 
-    const { createStrategy } = require('../strategies');
-    const { fetchUpbitCandles, fetchUpbitCandlesByRange } = require('../engine/dataCollector');
-    const { runBacktest, saveResult } = require('../engine/backtest');
+      const { createStrategy } = require('../strategies');
+      const { fetchUpbitCandles, fetchUpbitCandlesByRange } = require('../engine/dataCollector');
+      const { runBacktest, saveResult } = require('../engine/backtest');
 
-    const strat = createStrategy(strategy, params);
+      const strat = createStrategy(strategy, params);
 
-    let candles;
-    if (startDate && endDate) {
-      candles = await fetchUpbitCandlesByRange(market, unit, startDate, endDate);
-    } else {
-      candles = await fetchUpbitCandles(market, unit, count || 200);
+      let candles;
+      if (startDate && endDate) {
+        candles = await fetchUpbitCandlesByRange(market, unit, startDate, endDate);
+      } else {
+        candles = await fetchUpbitCandles(market, unit, count || 200);
+      }
+
+      const btOptions = { initialCapital: capital };
+      if (riskPerTrade !== undefined) btOptions.riskPerTrade = riskPerTrade;
+      if (stopLossATR !== undefined) btOptions.stopLossATR = stopLossATR;
+      if (takeProfitATR !== undefined) btOptions.takeProfitATR = takeProfitATR;
+      if (trailingStopATR !== undefined) btOptions.trailingStopATR = trailingStopATR;
+      if (allowShort !== undefined) btOptions.allowShort = allowShort;
+      if (useMarketDetector !== undefined) btOptions.useMarketDetector = useMarketDetector;
+
+      const result = runBacktest(strat, candles, btOptions);
+      const file = saveResult(result);
+
+      res.json({ ...result, file });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
+  }),
+);
 
-    const btOptions = { initialCapital: capital };
-    if (riskPerTrade !== undefined) btOptions.riskPerTrade = riskPerTrade;
-    if (stopLossATR !== undefined) btOptions.stopLossATR = stopLossATR;
-    if (takeProfitATR !== undefined) btOptions.takeProfitATR = takeProfitATR;
-    if (trailingStopATR !== undefined) btOptions.trailingStopATR = trailingStopATR;
-    if (allowShort !== undefined) btOptions.allowShort = allowShort;
-    if (useMarketDetector !== undefined) btOptions.useMarketDetector = useMarketDetector;
+// 워크포워드 검증 실행 (동시 실행 제한)
+router.post(
+  '/backtest/walk-forward',
+  withBtLimit(async (req, res) => {
+    try {
+      const {
+        strategy,
+        market = 'KRW-BTC',
+        unit = '60',
+        startDate,
+        endDate,
+        capital = 1000000,
+        windows = 4,
+        trainRatio = 0.7,
+        allowShort = false,
+        useMarketDetector = true,
+        optimizeStrategy = false,
+        metric = 'calmar',
+      } = req.body;
+      if (!strategy) return res.status(400).json({ error: '전략을 선택하세요' });
+      if (!startDate || !endDate) return res.status(400).json({ error: '시작일/종료일을 입력하세요' });
 
-    const result = runBacktest(strat, candles, btOptions);
-    const file = saveResult(result);
+      const { createStrategy } = require('../strategies');
+      const { fetchUpbitCandlesByRange } = require('../engine/dataCollector');
+      const { runWalkForward } = require('../engine/walkForward');
 
-    res.json({ ...result, file });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+      const candles = await fetchUpbitCandlesByRange(market, unit, startDate, endDate);
 
-// 워크포워드 검증 실행
-router.post('/backtest/walk-forward', async (req, res) => {
-  try {
-    const {
-      strategy,
-      market = 'KRW-BTC',
-      unit = '60',
-      startDate,
-      endDate,
-      capital = 1000000,
-      windows = 4,
-      trainRatio = 0.7,
-      allowShort = false,
-      useMarketDetector = true,
-      optimizeStrategy = false,
-      metric = 'calmar',
-    } = req.body;
-    if (!strategy) return res.status(400).json({ error: '전략을 선택하세요' });
-    if (!startDate || !endDate) return res.status(400).json({ error: '시작일/종료일을 입력하세요' });
+      const result = runWalkForward(createStrategy, strategy, candles, {
+        windows,
+        trainRatio,
+        initialCapital: capital,
+        allowShort,
+        useMarketDetector,
+        optimizeStrategy,
+        metric,
+      });
 
-    const { createStrategy } = require('../strategies');
-    const { fetchUpbitCandlesByRange } = require('../engine/dataCollector');
-    const { runWalkForward } = require('../engine/walkForward');
+      // 결과 저장
+      const filename = `walkforward_${strategy}_${Date.now()}.json`;
+      store.save(`backtest-results/${filename}`, result);
 
-    const candles = await fetchUpbitCandlesByRange(market, unit, startDate, endDate);
-
-    const result = runWalkForward(createStrategy, strategy, candles, {
-      windows,
-      trainRatio,
-      initialCapital: capital,
-      allowShort,
-      useMarketDetector,
-      optimizeStrategy,
-      metric,
-    });
-
-    // 결과 저장
-    const filename = `walkforward_${strategy}_${Date.now()}.json`;
-    store.save(`backtest-results/${filename}`, result);
-
-    res.json({ ...result, file: filename });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+      res.json({ ...result, file: filename });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }),
+);
 
 // 백테스트 결과 상세
 router.get('/backtest/:file', (req, res) => {

@@ -79,6 +79,25 @@ const globalLimiter = rateLimit({
 });
 app.use('/api/', globalLimiter);
 
+// ===== 요청 로깅 미들웨어 =====
+let reqSeq = 0;
+app.use('/api/', (req, res, next) => {
+  const id = `r${++reqSeq}`;
+  req.requestId = id;
+  const start = Date.now();
+  const { method } = req;
+  const url = req.originalUrl;
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const status = res.statusCode;
+    const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info';
+    log[level]({ reqId: id, method, url, status, ms: duration }, `${method} ${url} ${status} ${duration}ms`);
+  });
+
+  next();
+});
+
 // Rate Limiting: 무거운 작업 (분당 5회)
 const heavyLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -96,7 +115,42 @@ app.use(express.static(path.join(__dirname, 'dashboard')));
 
 // 헬스체크 (인증 불필요)
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime() });
+  const mem = process.memoryUsage();
+  const botSt = bot.getStatus();
+  const managerSt = botManager.getPortfolioStatus();
+  const wsClients = wss.clients.size;
+
+  // 이상 감지: 봇 실행 중인데 lastTick이 3분 이상 지났으면 stale
+  const lastTick = bot._lastTickAt || null;
+  const stale = botSt.running && lastTick && Date.now() - lastTick > 3 * 60 * 1000;
+
+  const healthy = !stale && bot.consecutiveErrors < 5;
+
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'ok' : 'degraded',
+    uptime: Math.round(process.uptime()),
+    timestamp: new Date().toISOString(),
+    memory: {
+      rss: Math.round(mem.rss / 1024 / 1024),
+      heap: Math.round(mem.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
+    },
+    bot: {
+      running: botSt.running,
+      market: botSt.market,
+      strategy: botSt.strategyName,
+      consecutiveErrors: bot.consecutiveErrors,
+      lastTick,
+      stale: !!stale,
+      position: !!botSt.position,
+      capital: botSt.capital,
+    },
+    multiBots: {
+      total: managerSt.totalBots,
+      running: managerSt.runningBots,
+    },
+    ws: { clients: wsClients },
+  });
 });
 
 // ===== API 라우트 =====
@@ -295,6 +349,15 @@ function gracefulShutdown(signal) {
       /* ignore */
     }
   }
+  // WS 클라이언트에게 종료 알림 후 연결 해제
+  wss.clients.forEach((client) => {
+    try {
+      client.send(JSON.stringify({ type: 'shutdown' }));
+      client.close(1001, 'server shutdown');
+    } catch (_) {
+      /* ignore */
+    }
+  });
   server.close(() => {
     log.info('서버 종료 완료');
     process.exit(0);

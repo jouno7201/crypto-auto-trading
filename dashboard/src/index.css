@@ -874,3 +874,33 @@ a:hover {
 .bot-info span:first-child {
   color: var(--text-secondary);
 }
+
+/* === Error Boundary === */
+.err-boundary {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+}
+.err-boundary h3 {
+  color: var(--red);
+  margin-bottom: 0.5rem;
+}
+.err-boundary p {
+  margin-bottom: 1rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+/* === Strategy Stats === */
+.row-highlight {
+  background: rgba(63, 185, 80, 0.08);
+}
+.row-highlight td:first-child {
+  position: relative;
+}
+.row-highlight td:first-child::before {
+  content: '★';
+  position: absolute;
+  left: 4px;
+  color: var(--yellow);
+}

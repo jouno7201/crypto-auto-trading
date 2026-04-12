@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, postJson } from '../hooks/useApi';
 import { fmtNum, fmtDate } from '../utils';
+import StrategyStatsPanel from './StrategyStatsPanel';
 
 export default function ReportsTab({ toast }) {
   const [summary, setSummary] = useState({});
@@ -164,6 +165,9 @@ export default function ReportsTab({ toast }) {
           )}
         </div>
       )}
+
+      {/* 전략별 실전 성과 */}
+      <StrategyStatsPanel toast={toast} />
     </div>
   );
 }

@@ -90,8 +90,8 @@ function queryTrades(opts) {
   if (sqlite) return sqlite.queryTrades(opts);
   // Fallback: in-memory filtering
   let trades = jsonLoad('trades.json', []);
-  if (opts.market) trades = trades.filter(t => t.market === opts.market);
-  if (opts.type) trades = trades.filter(t => t.type === opts.type);
+  if (opts.market) trades = trades.filter((t) => t.market === opts.market);
+  if (opts.type) trades = trades.filter((t) => t.type === opts.type);
   const total = trades.length;
   const offset = opts.offset || 0;
   const limit = opts.limit || 50;
@@ -101,7 +101,7 @@ function queryTrades(opts) {
 function queryOrders(opts) {
   if (sqlite) return sqlite.queryOrders(opts);
   let orders = jsonLoad('orders.json', []);
-  if (opts.market) orders = orders.filter(o => o.market === opts.market);
+  if (opts.market) orders = orders.filter((o) => o.market === opts.market);
   const total = orders.length;
   const offset = opts.offset || 0;
   const limit = opts.limit || 50;
@@ -113,8 +113,30 @@ function tradeStats(market) {
   return null;
 }
 
+function updateStrategyStats(strategy, market) {
+  if (sqlite) return sqlite.updateStrategyStats(strategy, market);
+}
+
+function getStrategyStats(strategy) {
+  if (sqlite) return sqlite.getStrategyStats(strategy);
+  return [];
+}
+
 function close() {
   if (sqlite) sqlite.close();
 }
 
-module.exports = { load, save, append, find, update, queryTrades, queryOrders, tradeStats, close, DATA_DIR };
+module.exports = {
+  load,
+  save,
+  append,
+  find,
+  update,
+  queryTrades,
+  queryOrders,
+  tradeStats,
+  updateStrategyStats,
+  getStrategyStats,
+  close,
+  DATA_DIR,
+};

@@ -14,6 +14,7 @@ const { atr } = require('../strategies/indicators');
 const { detectMarketState } = require('../strategies/marketDetector');
 const store = require('../store/jsonStore');
 const notify = require('./notifier');
+const { upbit } = require('../api');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('bot');
@@ -43,6 +44,7 @@ class TradingBot {
     this.consecutiveErrors = 0;
     this.lastATR = 0;
     this.lastMarketState = '';
+    this._lastTickAt = null;
 
     // 이전 상태 복원 시도
     this._restoreState();
@@ -80,9 +82,13 @@ class TradingBot {
       capital: this.capital,
     });
 
-    // 즉시 한 번 실행 후 인터벌
-    this.tick();
-    this.intervalId = setInterval(() => this.tick(), this.config.intervalMs);
+    // 주문 복구 (크래시 후 미체결 주문 확인)
+    this._reconcileOrders().then(() => {
+      if (!this.running) return;
+      // 즉시 한 번 실행 후 인터벌
+      this.tick();
+      this.intervalId = setInterval(() => this.tick(), this.config.intervalMs);
+    });
 
     // 주기적 상태 저장 (5분마다)
     this._stateTimer = setInterval(() => this._saveState(), 5 * 60 * 1000);
@@ -123,6 +129,7 @@ class TradingBot {
    */
   async tick() {
     if (!this.running) return;
+    this._lastTickAt = Date.now();
 
     try {
       const { market, unit, candleCount } = this.config;
@@ -343,6 +350,9 @@ class TradingBot {
         strategy: this.strategy.name,
       });
 
+      // 전략 성과 통계 갱신
+      store.updateStrategyStats(this.strategy.name, this.config.market);
+
       this._saveState();
     }
   }
@@ -381,6 +391,9 @@ class TradingBot {
         strategy: this.strategy.name,
       });
 
+      // 전략 성과 통계 갱신
+      store.updateStrategyStats(this.strategy.name, this.config.market);
+
       // 남은 물량이 너무 작으면 전량 매도
       if (this.position.volume * price < 5000) {
         log.info('잔량 소진 — 전량 매도');
@@ -417,6 +430,80 @@ class TradingBot {
       if (saved.tradeCount) this.tradeCount = saved.tradeCount;
     } catch (err) {
       log.warn({ err: err.message }, '상태 복원 실패 — 기본값 사용');
+    }
+  }
+
+  /**
+   * 주문 복구 — 봇 시작 시 거래소 미체결 주문 확인
+   * 크래시 후 재시작 시 잔여 주문이 있으면 경고 로깅 + 자동 취소
+   */
+  async _reconcileOrders() {
+    if ((process.env.TRADING_MODE || 'paper') !== 'live') return;
+
+    try {
+      const openOrders = await upbit.getOpenOrders(this.config.market);
+      if (!openOrders || openOrders.length === 0) {
+        log.info({ market: this.config.market }, '미체결 주문 없음 — 정상');
+        return;
+      }
+
+      log.warn({ market: this.config.market, count: openOrders.length }, '⚠️ 미체결 주문 발견 — 복구 시작');
+
+      for (const order of openOrders) {
+        const uuid = order.uuid;
+        const side = order.side; // bid or ask
+        const executedVol = parseFloat(order.executed_volume || '0');
+        const remainingVol = parseFloat(order.remaining_volume || '0');
+
+        log.warn(
+          {
+            uuid,
+            side,
+            executedVol,
+            remainingVol,
+            state: order.state,
+          },
+          '미체결 주문 상세',
+        );
+
+        // 미체결 주문 자동 취소
+        try {
+          await upbit.cancelOrder(uuid);
+          log.info({ uuid }, '미체결 주문 취소 완료');
+        } catch (cancelErr) {
+          log.error({ uuid, err: cancelErr.message }, '주문 취소 실패');
+        }
+
+        // 부분 체결된 매수 → 포지션에 반영
+        if (side === 'bid' && executedVol > 0 && !this.position) {
+          const avgPrice =
+            parseFloat(order.price || '0') > 0
+              ? parseFloat(order.price) / executedVol
+              : parseFloat(order.avg_price || '0');
+          if (avgPrice > 0) {
+            this.position = {
+              market: this.config.market,
+              entryPrice: avgPrice,
+              volume: executedVol,
+              entryTime: new Date().toISOString(),
+              reason: 'reconcile-partial-fill',
+              peakPrice: avgPrice,
+              tickCount: 0,
+              tpLadderFilled: [],
+            };
+            this.capital -= executedVol * avgPrice;
+            log.info({ entryPrice: avgPrice, volume: executedVol }, '부분 매수 체결분 포지션 복원');
+          }
+        }
+      }
+
+      notify.notifyError({
+        context: 'reconcile',
+        message: `${this.config.market}: ${openOrders.length}건 미체결 주문 발견/취소 처리됨`,
+      });
+      this._saveState();
+    } catch (err) {
+      log.error({ err: err.message }, '주문 복구 조회 실패 — 계속 진행');
     }
   }
 
@@ -483,8 +570,18 @@ class TradingBot {
 
   /**
    * 봇 설정 변경 (실행 중이면 재시작)
+   * 전략 변경 시 열린 포지션이 있으면 거부
    */
   configure({ market, strategyName, strategyParams, unit }) {
+    // 전략 또는 마켓 변경 시 열린 포지션 체크
+    const isStrategyChange = strategyName && strategyName !== this.config.strategyName;
+    const isMarketChange = market && market !== this.config.market;
+    if ((isStrategyChange || isMarketChange) && this.position) {
+      const msg = '포지션 보유 중에는 전략/마켓을 변경할 수 없습니다. 먼저 포지션을 정리하세요.';
+      log.warn({ position: this.position, requested: { market, strategyName } }, msg);
+      throw new Error(msg);
+    }
+
     const wasRunning = this.running;
     if (wasRunning) this.stop();
 
