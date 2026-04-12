@@ -29,6 +29,37 @@ const DEFAULT_CONFIG = {
     { atrMult: 3.5, portion: 0.33 }, // ATR×3.5 도달 → 33% 청산
     // 나머지 34%는 트레일링 스탑 또는 최종 TP로 청산
   ],
+
+  // 주간 목표 수익률 (달성 시 보수적 모드)
+  weeklyTargetPercent: 1.0,
+};
+
+// 현실적 목표 수익률 프리셋 (현물, 60분봉, 손실 억제 우선)
+const REALISTIC_TARGET_PRESET = {
+  stopLossATR: 2.2,
+  takeProfitATR: 3.2,
+  trailingStopATR: 1.6,
+  maxPositionRatio: 0.2,
+  fixedRiskRatio: 0.01,
+  weeklyTargetPercent: 0.1,
+  tpLadder: [
+    { atrMult: 1.8, portion: 0.4 },
+    { atrMult: 2.8, portion: 0.3 },
+  ],
+};
+
+// 주 1% 목표 앙상블 프리셋 (60분봉, WF 검증 최적값)
+const WEEKLY_1PCT_PRESET = {
+  stopLossATR: 1.5, // WF 최적: 1.5×ATR
+  takeProfitATR: 8.0, // WF 최적: 8×ATR (5.3:1 RR)
+  trailingStopATR: 0, // WF 최적: 트레일링 비활성
+  maxPositionRatio: 0.3, // WF 최적: 종목당 30%
+  fixedRiskRatio: 0.03, // 리스크 3% (risk=0.3과 조합)
+  weeklyTargetPercent: 1.0,
+  tpLadder: [
+    { atrMult: 3.0, portion: 0.33 }, // 부분 익절 L1 (3×ATR)
+    { atrMult: 5.0, portion: 0.33 }, // L2 (5×ATR)
+  ],
 };
 
 class RiskManager {
@@ -37,6 +68,20 @@ class RiskManager {
     this.dailyStartCapital = 0;
     this.dailyPnL = 0;
     this.tradingHalted = false;
+
+    // 주간 수익 추적
+    this.weeklyStartCapital = 0;
+    this.weeklyTargetReached = false;
+  }
+
+  /** 주 1% 목표 프리셋 적용 */
+  static get WEEKLY_1PCT_PRESET() {
+    return WEEKLY_1PCT_PRESET;
+  }
+
+  /** 현실적 목표 수익률 프리셋 적용 */
+  static get REALISTIC_TARGET_PRESET() {
+    return REALISTIC_TARGET_PRESET;
   }
 
   /**
@@ -46,6 +91,36 @@ class RiskManager {
     this.dailyStartCapital = capital;
     this.dailyPnL = 0;
     this.tradingHalted = false;
+  }
+
+  /**
+   * 주간 시작 자본 설정 (매주 월요일 리셋)
+   */
+  setWeeklyStart(capital) {
+    this.weeklyStartCapital = capital;
+    this.weeklyTargetReached = false;
+  }
+
+  /**
+   * 주간 수익률 확인 및 목표 달성 체크
+   * @returns {{ weeklyPnlPercent: number, targetReached: boolean, conservative: boolean }}
+   */
+  checkWeeklyTarget(currentCapital) {
+    if (this.weeklyStartCapital <= 0) return { weeklyPnlPercent: 0, targetReached: false, conservative: false };
+    const pnlPercent = ((currentCapital - this.weeklyStartCapital) / this.weeklyStartCapital) * 100;
+    const target = this.config.weeklyTargetPercent || 1.0;
+    const targetReached = pnlPercent >= target;
+
+    if (targetReached && !this.weeklyTargetReached) {
+      this.weeklyTargetReached = true;
+    }
+
+    return {
+      weeklyPnlPercent: parseFloat(pnlPercent.toFixed(3)),
+      targetReached,
+      // 목표 달성 후 보수적 모드 (80% 도달 시부터 신중)
+      conservative: pnlPercent >= target * 0.8,
+    };
   }
 
   /**
@@ -63,6 +138,11 @@ class RiskManager {
 
     if (this.tradingHalted) {
       return { allowed: false, reason: '매매 중지 상태' };
+    }
+
+    // 주간 목표 달성 시 신규 진입 차단 (수익 보호)
+    if (this.weeklyTargetReached) {
+      return { allowed: false, reason: `주간 목표 수익 달성 (${this.config.weeklyTargetPercent}%) — 수익 보호 모드` };
     }
 
     // 전체 투자 비율 체크
@@ -216,6 +296,7 @@ class RiskManager {
   getStatus(capital, positions = []) {
     const totalExposure = positions.reduce((sum, p) => sum + p.value, 0);
     const totalAssets = capital + totalExposure;
+    const weekly = this.checkWeeklyTarget(capital + totalExposure);
     return {
       config: this.config,
       tradingHalted: this.tradingHalted,
@@ -224,6 +305,10 @@ class RiskManager {
       totalExposure,
       totalAssets,
       exposureRatio: totalAssets > 0 ? parseFloat(((totalExposure / totalAssets) * 100).toFixed(1)) : 0,
+      weeklyStartCapital: this.weeklyStartCapital,
+      weeklyPnlPercent: weekly.weeklyPnlPercent,
+      weeklyTargetReached: weekly.targetReached,
+      weeklyConservative: weekly.conservative,
     };
   }
 }

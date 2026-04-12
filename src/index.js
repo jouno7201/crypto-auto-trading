@@ -184,10 +184,12 @@ app.post('/api/notify/test', async (req, res) => {
 // 트레이딩 봇 인스턴스 생성 (레거시 단일 봇)
 const bot = new TradingBot({
   market: process.env.BOT_MARKET || 'KRW-BTC',
-  strategyName: process.env.BOT_STRATEGY || 'ma-cross',
+  strategyName: process.env.BOT_STRATEGY || 'mean-reversion',
+  strategyParams: { keltnerMult: 1.8, deviationThreshold: 1.1 },
   unit: process.env.BOT_UNIT || '60',
   intervalMs: parseInt(process.env.BOT_INTERVAL || '60000', 10),
   initialCapital: parseInt(process.env.BOT_CAPITAL || '1000000', 10),
+  risk: require('./engine/riskManager').REALISTIC_TARGET_PRESET,
 });
 
 // 멀티마켓 봇 매니저
@@ -199,7 +201,8 @@ const botManager = new BotManager({
 // 기본 봇 매니저에 디폴트 마켓 등록 (저장된 구성이 없을 때만)
 if (botManager.bots.size === 0) {
   botManager.addBot(process.env.BOT_MARKET || 'KRW-BTC', {
-    strategyName: process.env.BOT_STRATEGY || 'ma-cross',
+    strategyName: process.env.BOT_STRATEGY || 'mean-reversion',
+    strategyParams: { keltnerMult: 1.8, deviationThreshold: 1.1 },
     unit: process.env.BOT_UNIT || '60',
   });
 }

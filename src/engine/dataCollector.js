@@ -12,8 +12,34 @@ const { createLogger } = require('../utils/logger');
 
 const log = createLogger('data');
 
-// 메모리 캐시: { "KRW-BTC_60": [...candles] }
+// 메모리 캐시 (LRU + TTL)
+const CACHE_MAX = 50;
+const CACHE_TTL = 10 * 60 * 1000; // 10분
 const cache = new Map();
+
+function cacheSet(key, value) {
+  // LRU: 기존 키 삭제 후 재삽입 (Map은 삽입 순서 유지)
+  cache.delete(key);
+  cache.set(key, { data: value, ts: Date.now() });
+  // 최대 크기 초과 시 가장 오래된 항목 제거
+  if (cache.size > CACHE_MAX) {
+    const oldest = cache.keys().next().value;
+    cache.delete(oldest);
+  }
+}
+
+function cacheGet(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL) {
+    cache.delete(key);
+    return null;
+  }
+  // LRU 갱신: 삭제 후 재삽입
+  cache.delete(key);
+  cache.set(key, entry);
+  return entry.data;
+}
 
 /**
  * Upbit 과거 캔들 데이터 수집 및 저장
@@ -29,9 +55,9 @@ async function fetchUpbitCandles(market, unit = '60', count = 200) {
     candles = await upbit.getCandles(market, unit, count);
   }
 
-  // 메모리 캐시 저장
+  // 메모리 캐시 저장 (LRU + TTL)
   const cacheKey = `${market}_${unit}`;
-  cache.set(cacheKey, candles);
+  cacheSet(cacheKey, candles);
 
   // JSON 파일 저장
   store.save(`candles/${market}_${unit}.json`, candles);
@@ -44,10 +70,11 @@ async function fetchUpbitCandles(market, unit = '60', count = 200) {
  * 캐시에서 캔들 데이터 조회 (없으면 파일에서 로드)
  */
 function getCandles(key) {
-  if (cache.has(key)) return cache.get(key);
+  const cached = cacheGet(key);
+  if (cached) return cached;
   const filename = `candles/${key}.json`;
   const data = store.load(filename, null);
-  if (data) cache.set(key, data);
+  if (data) cacheSet(key, data);
   return data;
 }
 

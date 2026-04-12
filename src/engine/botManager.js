@@ -6,12 +6,32 @@
  */
 
 const TradingBot = require('./tradingBot');
+const RiskManager = require('./riskManager');
 const store = require('../store/jsonStore');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('bot-manager');
 
-const DEFAULT_MARKETS = [{ market: 'KRW-BTC', strategyName: 'ensemble', unit: '60' }];
+const DEFAULT_MARKETS = [
+  {
+    market: 'KRW-BTC',
+    strategyName: 'mean-reversion',
+    unit: '60',
+    strategyParams: { keltnerMult: 1.8, deviationThreshold: 1.1 },
+  },
+  {
+    market: 'KRW-ETH',
+    strategyName: 'mean-reversion',
+    unit: '60',
+    strategyParams: { keltnerMult: 1.8, deviationThreshold: 1.1 },
+  },
+  {
+    market: 'KRW-XRP',
+    strategyName: 'mean-reversion',
+    unit: '60',
+    strategyParams: { keltnerMult: 1.8, deviationThreshold: 1.1 },
+  },
+];
 
 class BotManager {
   constructor(globalConfig = {}) {
@@ -38,12 +58,12 @@ class BotManager {
 
     const bot = new TradingBot({
       market,
-      strategyName: options.strategyName || 'ensemble',
-      strategyParams: options.strategyParams || {},
+      strategyName: options.strategyName || 'mean-reversion',
+      strategyParams: options.strategyParams || { keltnerMult: 1.8, deviationThreshold: 1.1 },
       unit: options.unit || '60',
       intervalMs: options.intervalMs || this.globalConfig.intervalMs,
       initialCapital: options.initialCapital || this.globalConfig.initialCapital,
-      risk: options.risk,
+      risk: options.risk || RiskManager.REALISTIC_TARGET_PRESET,
     });
 
     this.bots.set(market, bot);

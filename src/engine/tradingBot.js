@@ -46,11 +46,17 @@ class TradingBot {
     this.lastMarketState = '';
     this._lastTickAt = null;
 
+    // 주간 수익 추적
+    this.weeklyStartCapital = this.config.initialCapital;
+    this._weeklyResetDay = 1; // 월요일(1) 리셋
+
     // 이전 상태 복원 시도
     this._restoreState();
 
     // 일일 시작 자본 설정
     this.riskManager.setDailyStart(this.capital);
+    // 주간 시작 자본 설정
+    this.riskManager.setWeeklyStart(this.weeklyStartCapital);
   }
 
   /**
@@ -130,6 +136,9 @@ class TradingBot {
   async tick() {
     if (!this.running) return;
     this._lastTickAt = Date.now();
+
+    // 주간 리셋 체크 (매주 월요일 00:00)
+    this._checkWeeklyReset();
 
     try {
       const { market, unit, candleCount } = this.config;
@@ -405,6 +414,31 @@ class TradingBot {
   }
 
   /**
+   * 주간 리셋 체크 (월요일 00시 기준)
+   */
+  _checkWeeklyReset() {
+    const now = new Date();
+    if (now.getDay() === this._weeklyResetDay) {
+      const lastResetKey = `_weeklyResetDone_${now.toISOString().slice(0, 10)}`;
+      if (!this[lastResetKey]) {
+        const posValue = this.position ? this.position.volume * this.position.entryPrice : 0;
+        const totalAssets = this.capital + posValue;
+        log.info(
+          {
+            prevWeekStart: this.weeklyStartCapital,
+            currentAssets: totalAssets,
+            weeklyPnl: (((totalAssets - this.weeklyStartCapital) / this.weeklyStartCapital) * 100).toFixed(3) + '%',
+          },
+          '주간 리셋',
+        );
+        this.weeklyStartCapital = totalAssets;
+        this.riskManager.setWeeklyStart(totalAssets);
+        this[lastResetKey] = true;
+      }
+    }
+  }
+
+  /**
    * 이전 상태 복원 (재시작 시 포지션 보호)
    */
   _restoreState() {
@@ -428,6 +462,7 @@ class TradingBot {
       }
       if (saved.capital) this.capital = saved.capital;
       if (saved.tradeCount) this.tradeCount = saved.tradeCount;
+      if (saved.weeklyStartCapital) this.weeklyStartCapital = saved.weeklyStartCapital;
     } catch (err) {
       log.warn({ err: err.message }, '상태 복원 실패 — 기본값 사용');
     }
@@ -517,6 +552,7 @@ class TradingBot {
       position: this.position,
       tradeCount: this.tradeCount,
       running: this.running,
+      weeklyStartCapital: this.weeklyStartCapital,
       savedAt: new Date().toISOString(),
     });
   }
@@ -549,6 +585,9 @@ class TradingBot {
    * 현재 상태 조회
    */
   getStatus() {
+    const positionValue = this.position ? this.position.volume * this.position.entryPrice : 0;
+    const totalAssets = this.capital + positionValue;
+    const weekly = this.riskManager.checkWeeklyTarget(totalAssets);
     return {
       running: this.running,
       strategy: this.strategy.name,
@@ -561,6 +600,9 @@ class TradingBot {
       tradeCount: this.tradeCount,
       lastATR: this.lastATR,
       lastMarketState: this.lastMarketState,
+      weeklyPnlPercent: weekly.weeklyPnlPercent,
+      weeklyTargetReached: weekly.targetReached,
+      weeklyStartCapital: this.weeklyStartCapital,
       risk: this.riskManager.getStatus(
         this.capital,
         this.position ? [{ value: this.position.volume * this.position.entryPrice }] : [],

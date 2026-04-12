@@ -680,6 +680,18 @@ a:hover {
     padding-left: 12px;
     padding-right: 12px;
   }
+  .fg {
+    grid-template-columns: 1fr 1fr;
+  }
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .confirm-box {
+    width: calc(100vw - 32px);
+    max-width: 360px;
+  }
 }
 @media (max-width: 480px) {
   .cards {
@@ -687,6 +699,16 @@ a:hover {
   }
   .hdr h1 {
     font-size: 14px;
+  }
+  .fg {
+    grid-template-columns: 1fr;
+  }
+  .btn-grp {
+    flex-direction: column;
+  }
+  .tab {
+    padding: 8px 12px;
+    font-size: 12px;
   }
 }
 

@@ -2,9 +2,18 @@
  * API 라우트 - 자산 & 봇 상태 (멀티마켓 지원)
  */
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const store = require('../store/jsonStore');
 const { upbit } = require('../api');
+const { STRATEGIES } = require('../strategies');
+
+// === 입력 검증 상수 ===
+const VALID_UNITS = ['1', '3', '5', '10', '15', '30', '60', '240', 'day', 'week', 'month'];
+const MARKET_RE = /^[A-Z]{3,5}-[A-Z]{2,10}$/;
+const CAPITAL_MIN = 10000;
+const CAPITAL_MAX = 100_000_000;
 
 let botInstance = null;
 let botManagerInstance = null;
@@ -166,6 +175,15 @@ router.post(
         useMarketDetector,
       } = req.body;
       if (!strategy) return res.status(400).json({ error: '전략을 선택하세요' });
+      if (!STRATEGIES[strategy]) return res.status(400).json({ error: `알 수 없는 전략: ${strategy}` });
+      if (!VALID_UNITS.includes(String(unit))) return res.status(400).json({ error: `잘못된 봉 단위` });
+      if (startDate && endDate) {
+        const s = new Date(startDate),
+          e = new Date(endDate);
+        if (isNaN(s) || isNaN(e)) return res.status(400).json({ error: '잘못된 날짜 형식' });
+        if (s >= e) return res.status(400).json({ error: '시작일이 종료일보다 이전이어야 합니다' });
+        if (e > new Date()) return res.status(400).json({ error: '종료일은 현재 이전이어야 합니다' });
+      }
 
       const { createStrategy } = require('../strategies');
       const { fetchUpbitCandles, fetchUpbitCandlesByRange } = require('../engine/dataCollector');
@@ -218,7 +236,16 @@ router.post(
         metric = 'calmar',
       } = req.body;
       if (!strategy) return res.status(400).json({ error: '전략을 선택하세요' });
+      if (!STRATEGIES[strategy]) return res.status(400).json({ error: `알 수 없는 전략: ${strategy}` });
       if (!startDate || !endDate) return res.status(400).json({ error: '시작일/종료일을 입력하세요' });
+      if (!VALID_UNITS.includes(String(unit))) return res.status(400).json({ error: '잘못된 봉 단위' });
+      {
+        const s = new Date(startDate),
+          e = new Date(endDate);
+        if (isNaN(s) || isNaN(e)) return res.status(400).json({ error: '잘못된 날짜 형식' });
+        if (s >= e) return res.status(400).json({ error: '시작일이 종료일보다 이전이어야 합니다' });
+        if (e > new Date()) return res.status(400).json({ error: '종료일은 현재 이전이어야 합니다' });
+      }
 
       const { createStrategy } = require('../strategies');
       const { fetchUpbitCandlesByRange } = require('../engine/dataCollector');
@@ -247,11 +274,11 @@ router.post(
   }),
 );
 
-// 백테스트 결과 상세
+// 백테스트 결과 상세 (경로 탐색 방어)
 router.get('/backtest/:file', (req, res) => {
-  const fs = require('fs');
-  const path = require('path');
-  const filePath = path.join(store.DATA_DIR, 'backtest-results', req.params.file);
+  const baseDir = path.resolve(store.DATA_DIR, 'backtest-results');
+  const filePath = path.resolve(baseDir, path.basename(req.params.file));
+  if (!filePath.startsWith(baseDir)) return res.status(400).json({ error: '잘못된 파일 경로' });
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: '결과 없음' });
   const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   res.json(data);
@@ -262,7 +289,8 @@ router.get('/candles/:market', async (req, res) => {
   try {
     const { market } = req.params;
     const unit = req.query.unit || '60';
-    const count = parseInt(req.query.count || '200', 10);
+    if (!VALID_UNITS.includes(String(unit))) return res.status(400).json({ error: '잘못된 봉 단위' });
+    const count = Math.min(parseInt(req.query.count || '200', 10), 500);
     const { fetchUpbitCandles } = require('../engine/dataCollector');
     const candles = await fetchUpbitCandles(market, unit, count);
     res.json(candles);
@@ -294,11 +322,24 @@ router.get('/bots', (req, res) => {
   res.json(botManagerInstance.getAllStatus());
 });
 
-// 봇 추가 (마켓별)
+// 봇 추가 (마켓별) — 입력 검증 포함
 router.post('/bots/add', (req, res) => {
   if (!botManagerInstance) return res.status(400).json({ error: '멀티봇 매니저 미설정' });
   const { market, strategyName, unit, initialCapital } = req.body;
   if (!market) return res.status(400).json({ error: '마켓을 지정하세요' });
+  if (!MARKET_RE.test(market)) return res.status(400).json({ error: '잘못된 마켓 형식 (예: KRW-BTC)' });
+  if (strategyName && !STRATEGIES[strategyName])
+    return res.status(400).json({ error: `알 수 없는 전략: ${strategyName}` });
+  if (unit && !VALID_UNITS.includes(String(unit)))
+    return res.status(400).json({ error: `잘못된 봉 단위. 허용: ${VALID_UNITS.join(', ')}` });
+  if (initialCapital != null) {
+    const cap = Number(initialCapital);
+    if (!Number.isFinite(cap) || cap < CAPITAL_MIN || cap > CAPITAL_MAX) {
+      return res
+        .status(400)
+        .json({ error: `자본금은 ${CAPITAL_MIN.toLocaleString()}~${CAPITAL_MAX.toLocaleString()} 범위여야 합니다` });
+    }
+  }
   const bot = botManagerInstance.addBot(market, { strategyName, unit, initialCapital });
   res.json(bot.getStatus());
 });

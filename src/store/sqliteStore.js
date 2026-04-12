@@ -20,6 +20,17 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('busy_timeout = 5000');
 
+// DB 무결성 검사
+try {
+  const result = db.pragma('integrity_check');
+  const ok = result?.[0]?.integrity_check === 'ok';
+  if (!ok) {
+    console.error('[sqliteStore] ⚠️ DB 무결성 검사 실패:', result);
+  }
+} catch (e) {
+  console.error('[sqliteStore] integrity_check 오류:', e.message);
+}
+
 // === Schema ===
 db.exec(`
   CREATE TABLE IF NOT EXISTS trades (

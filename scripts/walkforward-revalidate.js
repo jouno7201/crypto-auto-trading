@@ -1,18 +1,18 @@
 /**
  * 워크포워드 재검증 스크립트
- * 최근 3개월 (2026-01 ~ 2026-04) 데이터로 ensemble, macd, mean-reversion 전략 검증
+ * 최근 3개월 (2026-01 ~ 2026-04) 데이터로 ensemble 전략 멀티마켓 검증
  */
 
 const http = require('http');
 
 const BASE = 'http://localhost:3008';
-const STRATEGIES = ['ensemble', 'macd', 'mean-reversion', 'smart-range'];
+const MARKETS = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP'];
+const STRATEGY = 'ensemble';
 
 const COMMON_PARAMS = {
-  market: 'KRW-BTC',
   unit: '60',
   startDate: '2026-01-01',
-  endDate: '2026-04-09',
+  endDate: '2026-04-12',
   capital: 1000000,
   windows: 4,
   trainRatio: 0.7,
@@ -103,55 +103,69 @@ function printSummary(name, result) {
 }
 
 async function main() {
-  console.log('🔬 워크포워드 재검증 시작');
+  console.log('🔬 워크포워드 재검증 시작 (앙상블 멀티마켓)');
   console.log(`  기간: ${COMMON_PARAMS.startDate} ~ ${COMMON_PARAMS.endDate}`);
-  console.log(`  마켓: ${COMMON_PARAMS.market} / ${COMMON_PARAMS.unit}분봉`);
-  console.log(`  전략: ${STRATEGIES.join(', ')}`);
+  console.log(`  마켓: ${MARKETS.join(', ')} / ${COMMON_PARAMS.unit}분봉`);
+  console.log(`  전략: ${STRATEGY}`);
   console.log(`  윈도우: ${COMMON_PARAMS.windows}, 훈련비율: ${COMMON_PARAMS.trainRatio}`);
   console.log(`  전략 파라미터 최적화: ${COMMON_PARAMS.optimizeStrategy}`);
   console.log('');
 
   const results = {};
 
-  for (const strategy of STRATEGIES) {
-    console.log(`\n⏳ [${strategy}] 워크포워드 실행 중... (소요시간 1~3분)`);
+  for (const market of MARKETS) {
+    const label = `${STRATEGY}/${market}`;
+    console.log(`\n⏳ [${label}] 워크포워드 실행 중...`);
     const startTime = Date.now();
 
     try {
       const result = await postJSON(`${BASE}/api/assets/backtest/walk-forward`, {
         ...COMMON_PARAMS,
-        strategy,
+        market,
+        strategy: STRATEGY,
       });
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log(`  ✅ 완료 (${elapsed}초)`);
-      results[strategy] = result;
-      printSummary(strategy, result);
+      results[label] = result;
+      printSummary(label, result);
     } catch (err) {
       console.log(`  ❌ 실패: ${err.message}`);
-      results[strategy] = { error: err.message };
+      results[label] = { error: err.message };
     }
   }
 
   // 최종 비교 테이블
   console.log('\n\n' + '='.repeat(60));
-  console.log('📋 최종 비교');
+  console.log('📋 앙상블 멀티마켓 최종 비교');
   console.log('='.repeat(60));
   console.log(
-    `${'전략'.padEnd(20)} ${'OOS수익률'.padStart(10)} ${'MDD'.padStart(8)} ${'승률'.padStart(8)} ${'PF'.padStart(6)} ${'판정'.padStart(15)}`,
+    `${'마켓'.padEnd(25)} ${'OOS수익률'.padStart(10)} ${'MDD'.padStart(8)} ${'승률'.padStart(8)} ${'PF'.padStart(6)} ${'판정'.padStart(15)}`,
   );
-  console.log('-'.repeat(70));
+  console.log('-'.repeat(75));
 
-  for (const strategy of STRATEGIES) {
-    const r = results[strategy];
+  let totalReturn = 0;
+  let count = 0;
+  for (const label of Object.keys(results)) {
+    const r = results[label];
     if (r.error) {
-      console.log(`${strategy.padEnd(20)} 에러: ${r.error}`);
+      console.log(`${label.padEnd(25)} 에러: ${r.error}`);
       continue;
     }
     const oos = r.oos || {};
     const analysis = r.analysis || {};
+    const ret = oos.totalChainedReturn || 0;
+    totalReturn += ret;
+    count++;
     console.log(
-      `${strategy.padEnd(20)} ${((oos.avgReturn || 0).toFixed(2) + '%').padStart(10)} ${((oos.avgDrawdown || 0).toFixed(2) + '%').padStart(8)} ${((oos.avgWinRate || 0).toFixed(1) + '%').padStart(8)} ${(oos.avgProfitFactor || 0).toFixed(2).padStart(6)} ${(analysis.verdict || 'N/A').padStart(15)}`,
+      `${label.padEnd(25)} ${(ret.toFixed(2) + '%').padStart(10)} ${((oos.worstDrawdown || 0).toFixed(2) + '%').padStart(8)} ${((oos.avgWinRate || 0).toFixed(1) + '%').padStart(8)} ${(oos.avgProfitFactor || 0).toFixed(2).padStart(6)} ${(analysis.verdict || 'N/A').padStart(15)}`,
     );
+  }
+
+  if (count > 0) {
+    console.log('-'.repeat(75));
+    console.log(`${'포트폴리오 평균'.padEnd(25)} ${(totalReturn / count).toFixed(2) + '%'}`);
+    const weeklyAvg = (totalReturn / count / 14).toFixed(3);
+    console.log(`${'주간 평균 수익률'.padEnd(25)} ${weeklyAvg}% (목표: 1.00%)`);
   }
 
   console.log('\n✅ 워크포워드 재검증 완료\n');

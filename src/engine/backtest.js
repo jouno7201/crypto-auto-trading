@@ -398,15 +398,12 @@ function runBacktest(strategy, candles, options = {}) {
   // Sortino 비율 (하방 편차만)
   const dailyRf = 0.035 / 252; // 무위험 수익률 연 3.5%
   const negReturns = returns.filter((r) => r < dailyRf);
-  const downsideDev = negReturns.length > 0
-    ? Math.sqrt(negReturns.reduce((a, r) => a + (r - dailyRf) ** 2, 0) / returns.length)
-    : 0;
+  const downsideDev =
+    negReturns.length > 0 ? Math.sqrt(negReturns.reduce((a, r) => a + (r - dailyRf) ** 2, 0) / returns.length) : 0;
   const sortinoRatio = downsideDev > 0 ? ((avgReturn - dailyRf) / downsideDev) * Math.sqrt(252) : 0;
 
   // Calmar 비율 (연환산 수익률 / MDD)
-  const annualReturn = returns.length > 0
-    ? ((Math.pow(1 + totalReturn / 100, 252 / returns.length) - 1) * 100)
-    : 0;
+  const annualReturn = returns.length > 0 ? (Math.pow(1 + totalReturn / 100, 252 / returns.length) - 1) * 100 : 0;
   const calmarRatio = maxDrawdown > 0 ? annualReturn / maxDrawdown : 0;
 
   // 롱/숏 통계

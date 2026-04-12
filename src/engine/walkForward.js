@@ -35,11 +35,11 @@ function generateGrid(grid) {
  * 기본 최적화 그리드 (엔진 파라미터)
  */
 const DEFAULT_ENGINE_GRID = {
-  stopLossATR: [1.0, 1.5, 2.0],      // 타이트 SL 집중 (WF: 1.5 최적)
-  takeProfitATR: [5.0, 6.0, 8.0],    // 높은 TP:SL 비율 유지 (≥3:1)
-  trailingStopATR: [0],               // 비활성 고정 (WF: 트레일링 손해)
-  riskPerTrade: [0.15, 0.2],          // 보수적 포지션 (WF: 0.2 최적)
-  minHoldBars: [0],                    // 빠른 탈출 허용
+  stopLossATR: [1.5, 2.0, 3.0],
+  takeProfitATR: [3.0, 5.0, 8.0],
+  trailingStopATR: [0, 3.0, 4.0],
+  riskPerTrade: [0.2, 0.3],
+  minHoldBars: [0, 2],
 };
 
 /**
@@ -60,9 +60,9 @@ const STRATEGY_PARAM_GRIDS = {
     multiplier: [1.5, 2.0, 2.5],
   },
   macd: {
-    fastPeriod: [10, 12],
-    slowPeriod: [18, 21, 24],          // 21 주변 집중 탐색 (WF 최적)
-    signalPeriod: [5, 7, 9],           // 7 주변 집중 탐색 (WF 최적)
+    fastPeriod: [8, 12],
+    slowPeriod: [21, 26],
+    signalPeriod: [7, 9],
   },
   'triple-ema': {
     fast: [7, 9],
@@ -80,9 +80,7 @@ const STRATEGY_PARAM_GRIDS = {
     adxThreshold: [18, 22],
   },
   ensemble: {
-    trendMACDWeight: [0.7, 0.8],
-    rangeMRWeight: [0.7, 0.8],
-    mrKeltnerMult: [1.2, 1.5],
+    mrKeltnerMult: [1.5, 2.0], // WF 최적: 1.5 (MR 켈트너 채널 배수만 최적화)
   },
 };
 
@@ -209,6 +207,10 @@ function runWalkForward(createStrategyFn, strategyName, candles, config = {}) {
     };
 
     const testResult = runBacktest(testStrategy, testCandles, testOpts);
+    const testLongTrades =
+      testResult.trades.longTrades ?? testResult.tradeLog.filter((trade) => trade.side === 'long').length;
+    const testShortTrades =
+      testResult.trades.shortTrades ?? testResult.tradeLog.filter((trade) => trade.side === 'short').length;
 
     windowResults.push({
       window: w + 1,
@@ -241,6 +243,8 @@ function runWalkForward(createStrategyFn, strategyName, candles, config = {}) {
         sharpe: testResult.performance.sharpeRatio,
         profitFactor: testResult.performance.profitFactor,
         trades: testResult.trades.total,
+        longTrades: testLongTrades,
+        shortTrades: testShortTrades,
         winRate: testResult.trades.winRate,
         finalCapital: testResult.performance.finalCapital,
       },
@@ -281,6 +285,8 @@ function runWalkForward(createStrategyFn, strategyName, candles, config = {}) {
   const consistencyRatio = oosReturns.filter((r) => r > 0).length / oosReturns.length;
   const avgOOSDrawdown = mean(oosDrawdowns);
   const worstOOSDrawdown = Math.min(...oosDrawdowns.map((d) => -Math.abs(d)));
+  const totalLongTrades = windowResults.reduce((sum, window) => sum + (window.test.longTrades || 0), 0);
+  const totalShortTrades = windowResults.reduce((sum, window) => sum + (window.test.shortTrades || 0), 0);
 
   const summary = {
     strategy: strategyName,
@@ -290,6 +296,11 @@ function runWalkForward(createStrategyFn, strategyName, candles, config = {}) {
     totalCombosPerWindow: totalCombos,
     optimizeStrategy,
     initialCapital,
+    constraints: {
+      allowShort,
+      useMarketDetector,
+      executionMode: allowShort ? 'long-short' : 'spot-only',
+    },
     // OOS 종합 성과
     oos: {
       avgReturn: round2(avgOOS),
@@ -301,6 +312,8 @@ function runWalkForward(createStrategyFn, strategyName, candles, config = {}) {
       avgSharpe: round2(mean(windowResults.map((w) => w.test.sharpe))),
       avgProfitFactor: round2(finiteMean(windowResults.map((w) => w.test.profitFactor))),
       totalTrades: windowResults.reduce((s, w) => s + w.test.trades, 0),
+      longTrades: totalLongTrades,
+      shortTrades: totalShortTrades,
     },
     // 견고성 분석
     analysis: {
@@ -309,6 +322,7 @@ function runWalkForward(createStrategyFn, strategyName, candles, config = {}) {
       isAvgReturn: round2(avgIS),
       returnDegradation: round2(avgIS - avgOOS), // IS→OOS 수익률 감소
       verdict: getVerdict(robustness, consistencyRatio, avgOOS),
+      spotCompatible: !allowShort && totalShortTrades === 0,
     },
     chainedEquity,
     windowDetails: windowResults,

@@ -1,25 +1,65 @@
 /**
- * MACD 전략 v4
+ * MACD 전략 v5
  * - MACD/시그널 크로스 + 제로라인 교차 + 히스토그램 다이버전스
  * - v4: 시장 상태 필터 (횡보장 억제), 히스토그램 크기 검증, RSI 연동 강화
+ * - v5: 타임프레임별 프리셋 (15분 스캘핑 → 주 1% 목표)
  */
 
 const BaseStrategy = require('./BaseStrategy');
 const { macd, ema, rsi, atr } = require('./indicators');
 const { detectMarketState } = require('./marketDetector');
 
+// 타임프레임별 최적 파라미터 프리셋
+const PRESETS = {
+  // 15분봉 스캘핑 (주 1% 목표) — 빠른 반응 + 높은 거래 빈도
+  'scalp-15m': {
+    fastPeriod: 8,
+    slowPeriod: 17,
+    signalPeriod: 6,
+    trendPeriod: 50,
+    rangingADXThreshold: 15,
+    histMinATRRatio: 0.05,
+  },
+  // 1시간봉 기본 (WF 검증 완료)
+  'default-1h': {
+    fastPeriod: 12,
+    slowPeriod: 21,
+    signalPeriod: 7,
+    trendPeriod: 100,
+    rangingADXThreshold: 18,
+    histMinATRRatio: 0.1,
+  },
+  // 5분봉 초단타 (고빈도)
+  'ultra-5m': {
+    fastPeriod: 6,
+    slowPeriod: 13,
+    signalPeriod: 5,
+    trendPeriod: 30,
+    rangingADXThreshold: 12,
+    histMinATRRatio: 0.03,
+  },
+};
+
 class MACDStrategy extends BaseStrategy {
   constructor(params = {}) {
+    // preset 파라미터로 프리셋 자동 적용
+    const preset = PRESETS[params.preset] || {};
+    const { preset: _removed, ...restParams } = params;
     super('MACD', {
       fastPeriod: 12,
-      slowPeriod: 21, // WF 최적값
-      signalPeriod: 7, // WF 최적값
+      slowPeriod: 21,
+      signalPeriod: 7,
       trendPeriod: 100,
-      // v4 신규 파라미터
-      rangingADXThreshold: 18, // ADX < 18 횡보장에서 시그널 감쇠
-      histMinATRRatio: 0.1, // 히스토그램 최소 크기 (ATR 대비)
-      ...params,
+      rangingADXThreshold: 18,
+      histMinATRRatio: 0.1,
+      ...preset, // 프리셋 적용
+      ...restParams, // 사용자 오버라이드
     });
+  }
+
+  /** 사용 가능한 프리셋 목록 */
+  static get PRESETS() {
+    return PRESETS;
   }
 
   analyze(candles) {

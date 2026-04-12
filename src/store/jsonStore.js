@@ -21,6 +21,42 @@ DIRS.forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
+// === 백테스트 결과 자동 정리 (30일 초과 또는 200개 초과 삭제) ===
+const BT_MAX_AGE_DAYS = 30;
+const BT_MAX_COUNT = 200;
+
+function cleanupBacktestResults() {
+  const dir = path.join(DATA_DIR, 'backtest-results');
+  if (!fs.existsSync(dir)) return;
+  try {
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => {
+        const fp = path.join(dir, f);
+        return { name: f, path: fp, mtime: fs.statSync(fp).mtimeMs };
+      })
+      .sort((a, b) => b.mtime - a.mtime); // 최신순
+
+    const cutoff = Date.now() - BT_MAX_AGE_DAYS * 86400000;
+    let deleted = 0;
+    files.forEach((f, i) => {
+      if (i >= BT_MAX_COUNT || f.mtime < cutoff) {
+        fs.unlinkSync(f.path);
+        deleted++;
+      }
+    });
+    if (deleted > 0) {
+      console.log(`[jsonStore] 백테스트 결과 정리: ${deleted}개 파일 삭제 (남은: ${files.length - deleted}개)`);
+    }
+  } catch (e) {
+    console.error('[jsonStore] 백테스트 정리 오류:', e.message);
+  }
+}
+
+// 앱 시작 시 자동 정리
+cleanupBacktestResults();
+
 // SQLite for structured data
 let sqlite = null;
 try {
